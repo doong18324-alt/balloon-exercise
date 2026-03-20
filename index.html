@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>🎈 풍선 터트리기 운동 트레이너</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;600;700;900&display=swap');
+
+:root {
+  --primary: #FF3366;
+  --secondary: #7C3AED;
+  --accent: #06D6A0;
+  --dark: #0B0E1A;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--dark);
+  color: #fff;
+  overflow: hidden;
+  height: 100vh; height: 100dvh;
+  width: 100vw;
+  touch-action: manipulation;
+}
+
+/* ─────── START SCREEN ─────── */
+#startScreen {
+  position: fixed; inset:0; z-index:100;
+  background: linear-gradient(160deg, #0B0E1A 0%, #1a1040 50%, #0B0E1A 100%);
+  display: flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:24px; padding:20px;
+  transition: opacity 0.5s, transform 0.5s;
+}
+#startScreen.hidden { opacity:0; pointer-events:none; transform:scale(1.05); }
+
+.start-balloon-deco { position:absolute; width:100%; height:100%; pointer-events:none; overflow:hidden; }
+.deco-balloon {
+  position:absolute; border-radius:50%;
+  animation: floatB 6s ease-in-out infinite; opacity:0.12;
+}
+@keyframes floatB {
+  0%,100%{transform:translateY(0) rotate(0deg)}
+  50%{transform:translateY(-25px) rotate(8deg)}
+}
+
+.start-title {
+  font-family:'Black Han Sans',sans-serif;
+  font-size:clamp(32px,8vw,64px);
+  background:linear-gradient(135deg,#FF3366,#FF6B9D,#7C3AED);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text; text-align:center; line-height:1.2;
+  animation:titlePulse 3s ease-in-out infinite;
+  position:relative; z-index:1;
+}
+@keyframes titlePulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.3)}}
+
+.start-sub {
+  font-size:clamp(13px,3vw,18px); color:#94a3b8;
+  text-align:center; line-height:1.6; position:relative; z-index:1;
+}
+
+.exercise-select {
+  display:flex; flex-direction:column; gap:12px;
+  width:min(92vw,420px); position:relative; z-index:1;
+}
+
+.mode-btn {
+  padding:16px 20px; border:2px solid rgba(255,255,255,0.08);
+  border-radius:16px; background:rgba(255,255,255,0.03);
+  color:#fff; font-size:16px; font-weight:700; cursor:pointer;
+  transition:all 0.3s; font-family:inherit; text-align:left;
+  display:flex; align-items:center; gap:14px;
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+}
+.mode-btn:hover,.mode-btn:active {
+  border-color:var(--primary); background:rgba(255,51,102,0.08);
+  transform:translateX(4px);
+}
+.mode-btn .m-icon{font-size:26px; flex-shrink:0;}
+.mode-btn .m-label{flex:1;}
+.mode-btn .m-desc{font-size:11px; color:#94a3b8; font-weight:400; margin-top:2px;}
+.mode-btn .m-arrow{color:#475569; font-size:18px;}
+
+#loadingBox {
+  display:none; text-align:center; color:#94a3b8; font-size:15px;
+  position:relative; z-index:1;
+}
+#loadingBox .spinner {
+  width:36px; height:36px; border:3px solid rgba(255,255,255,0.1);
+  border-top-color:#FF3366; border-radius:50%;
+  animation:spin 0.8s linear infinite; margin:0 auto 12px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.footer-text {
+  position:absolute; bottom:16px; left:0; right:0;
+  text-align:center; font-size:10px; color:#334155;
+}
+
+/* ─────── EXERCISE SCREEN ─────── */
+#exerciseScreen { position:fixed; inset:0; display:none; }
+#exerciseScreen.active { display:block; }
+
+#videoContainer { position:relative; width:100%; height:100%; background:#000; }
+video {
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; transform:scaleX(-1);
+}
+#poseCanvas {
+  position:absolute; inset:0; width:100%; height:100%;
+  transform:scaleX(-1); z-index:2;
+}
+#fxCanvas {
+  position:absolute; inset:0; width:100%; height:100%;
+  z-index:3; pointer-events:none;
+}
+
+/* HUD Top */
+.hud-top {
+  position:absolute; top:0; left:0; right:0; z-index:10;
+  padding:max(env(safe-area-inset-top),12px) 16px 12px;
+  display:flex; justify-content:space-between; align-items:flex-start;
+  background:linear-gradient(180deg,rgba(0,0,0,0.75) 0%,transparent 100%);
+}
+.hud-ex-info { display:flex; flex-direction:column; gap:3px; max-width:65%; }
+.hud-ex-name {
+  font-family:'Black Han Sans',sans-serif;
+  font-size:clamp(18px,4.5vw,28px);
+  background:linear-gradient(135deg,#FF3366,#FF6B9D);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.hud-ex-desc { font-size:12px; color:#94a3b8; }
+.hud-ex-progress { font-size:11px; color:#64748b; }
+
+.hud-rep {
+  display:flex; flex-direction:column; align-items:center;
+  background:rgba(0,0,0,0.6); backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border-radius:18px; padding:10px 20px;
+  border:1px solid rgba(255,255,255,0.08); min-width:80px;
+}
+.hud-rep-num {
+  font-family:'Black Han Sans',sans-serif;
+  font-size:42px; line-height:1; color:#fff;
+}
+.hud-rep-lbl { font-size:11px; color:#94a3b8; }
+
+/* Angle Display */
+.angle-box {
+  position:absolute; top:50%; left:12px; z-index:10;
+  transform:translateY(-50%);
+  background:rgba(0,0,0,0.5); backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  border-radius:14px; padding:12px 14px;
+  border:1px solid rgba(255,255,255,0.06);
+}
+.angle-label{font-size:10px; color:#64748b;}
+.angle-val {
+  font-family:'Black Han Sans',sans-serif;
+  font-size:32px; color:var(--accent);
+}
+.angle-unit{font-size:13px; color:#64748b;}
+.angle-status{font-size:11px; margin-top:2px;}
+.angle-status.up{color:var(--accent)}
+.angle-status.down{color:var(--primary)}
+
+/* HUD Bottom */
+.hud-bottom {
+  position:absolute; bottom:0; left:0; right:0; z-index:10;
+  padding:12px 16px max(env(safe-area-inset-bottom),16px);
+  background:linear-gradient(0deg,rgba(0,0,0,0.75) 0%,transparent 100%);
+}
+.rep-dots { display:flex; justify-content:center; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+.rep-dot {
+  width:24px; height:24px; border-radius:50%;
+  background:rgba(255,255,255,0.1); border:2px solid rgba(255,255,255,0.15);
+  transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; color:transparent;
+}
+.rep-dot.done {
+  background:var(--primary); border-color:var(--primary);
+  color:#fff; transform:scale(1.1); box-shadow:0 0 12px rgba(255,51,102,0.5);
+}
+.rep-dot.current {
+  border-color:var(--accent); animation:dotP 1.5s ease-in-out infinite;
+}
+@keyframes dotP{0%,100%{box-shadow:0 0 0 0 rgba(6,214,160,0.4)}50%{box-shadow:0 0 0 6px rgba(6,214,160,0)}}
+
+.progress-bar { height:3px; background:rgba(255,255,255,0.08); border-radius:2px; overflow:hidden; }
+.progress-fill {
+  height:100%; border-radius:2px; transition:width 0.5s ease;
+  background:linear-gradient(90deg,var(--primary),var(--secondary));
+}
+
+.btn-back {
+  position:absolute; bottom:max(env(safe-area-inset-bottom),16px); right:16px; z-index:10;
+  background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15);
+  color:#fff; padding:8px 16px; border-radius:10px;
+  font-family:inherit; font-size:13px; cursor:pointer;
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+}
+
+/* Feedback Toast */
+.fb-toast {
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%) scale(0);
+  z-index:20; pointer-events:none;
+  font-family:'Black Han Sans',sans-serif;
+  font-size:clamp(36px,10vw,72px);
+  color:#fff; text-shadow:0 0 30px rgba(255,51,102,0.8);
+  opacity:0;
+}
+.fb-toast.show { animation:toastPop 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+@keyframes toastPop {
+  0%{transform:translate(-50%,-50%) scale(0);opacity:0}
+  30%{transform:translate(-50%,-50%) scale(1.3);opacity:1}
+  60%{transform:translate(-50%,-50%) scale(1);opacity:1}
+  100%{transform:translate(-50%,-60%) scale(0.8);opacity:0}
+}
+
+/* Guide overlay */
+.guide-overlay {
+  position:absolute; inset:0; z-index:15;
+  display:none; align-items:center; justify-content:center;
+  background:rgba(0,0,0,0.7); backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.guide-overlay.active{display:flex;}
+.guide-text {
+  font-size:clamp(16px,4vw,26px); font-weight:700;
+  text-align:center; color:#fff; line-height:1.6;
+  max-width:80%; padding:20px;
+}
+.guide-hl{color:var(--accent);}
+
+/* ─────── TRANSITION ─────── */
+#transitionScreen {
+  position:fixed; inset:0; z-index:50;
+  background:rgba(11,14,26,0.92);
+  display:none; align-items:center; justify-content:center;
+  flex-direction:column; gap:16px;
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+}
+#transitionScreen.active{display:flex;}
+.trans-step{font-size:13px; color:#64748b;}
+.trans-icon{font-size:56px;}
+.trans-name {
+  font-family:'Black Han Sans',sans-serif;
+  font-size:clamp(24px,6vw,44px); text-align:center;
+  background:linear-gradient(135deg,#06D6A0,#7C3AED);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.trans-desc{font-size:15px; color:#94a3b8; text-align:center;}
+.trans-reps{font-size:13px; color:var(--primary); font-weight:700;}
+.trans-count {
+  font-family:'Black Han Sans',sans-serif;
+  font-size:72px; color:#fff; margin-top:8px;
+}
+
+/* ─────── COMPLETE ─────── */
+#completeScreen {
+  position:fixed; inset:0; z-index:100;
+  background:linear-gradient(160deg,#0B0E1A,#1a1040,#0B0E1A);
+  display:none; align-items:center; justify-content:center;
+  flex-direction:column; gap:20px; padding:20px;
+}
+#completeScreen.active{display:flex;}
+.comp-emoji{font-size:72px; animation:bounceE 1s ease infinite;}
+@keyframes bounceE{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px) rotate(8deg)}}
+.comp-title {
+  font-family:'Black Han Sans',sans-serif;
+  font-size:clamp(28px,7vw,56px);
+  background:linear-gradient(135deg,#FFD700,#FF6B9D,#7C3AED);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text; text-align:center;
+}
+.comp-sub{font-size:15px; color:#94a3b8; text-align:center;}
+.comp-stats{display:flex; gap:16px; flex-wrap:wrap; justify-content:center;}
+.stat-card {
+  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+  border-radius:16px; padding:16px 22px; text-align:center; min-width:100px;
+}
+.stat-num{font-family:'Black Han Sans',sans-serif; font-size:32px; color:var(--accent);}
+.stat-lbl{font-size:12px; color:#94a3b8; margin-top:2px;}
+.btn-restart {
+  margin-top:16px; padding:14px 36px;
+  background:linear-gradient(135deg,var(--primary),var(--secondary));
+  color:#fff; border:none; border-radius:50px;
+  font-size:17px; font-weight:700; cursor:pointer;
+  font-family:inherit; transition:all 0.3s;
+}
+.btn-restart:hover{transform:scale(1.05); box-shadow:0 0 25px rgba(255,51,102,0.4);}
+</style>
+</head>
+<body>
+
+<!-- ════ START ════ -->
+<div id="startScreen">
+  <div class="start-balloon-deco">
+    <div class="deco-balloon" style="width:100px;height:120px;background:radial-gradient(circle at 30% 30%,#FF6B9D,#FF3366);top:8%;left:6%;animation-delay:0s"></div>
+    <div class="deco-balloon" style="width:75px;height:90px;background:radial-gradient(circle at 30% 30%,#A78BFA,#7C3AED);top:12%;right:10%;animation-delay:1.5s"></div>
+    <div class="deco-balloon" style="width:60px;height:72px;background:radial-gradient(circle at 30% 30%,#34D399,#06D6A0);bottom:18%;left:12%;animation-delay:3s"></div>
+    <div class="deco-balloon" style="width:85px;height:102px;background:radial-gradient(circle at 30% 30%,#FBBF24,#F59E0B);bottom:12%;right:8%;animation-delay:2s"></div>
+    <div class="deco-balloon" style="width:50px;height:60px;background:radial-gradient(circle at 30% 30%,#38BDF8,#0EA5E9);top:45%;left:3%;animation-delay:4s"></div>
+  </div>
+  <div class="start-title">풍선 터트리기<br>운동 트레이너</div>
+  <div class="start-sub">카메라로 동작을 감지하고<br>풍선을 터트리며 운동하세요! 🎈💪</div>
+  <div id="loadingBox">
+    <div class="spinner"></div>
+    AI 포즈 감지 모델 로딩 중...<br><span style="font-size:12px;color:#64748b">처음 접속 시 약 5~15초 소요</span>
+  </div>
+  <div class="exercise-select" id="exerciseSelect">
+    <button class="mode-btn" onclick="startMode('upper')">
+      <span class="m-icon">💪</span>
+      <span class="m-label">상체 밴드운동<div class="m-desc">Biceps Curl · Shoulder Press · Lateral Raise 외 2종</div></span>
+      <span class="m-arrow">→</span>
+    </button>
+    <button class="mode-btn" onclick="startMode('lower')">
+      <span class="m-icon">🦵</span>
+      <span class="m-label">하체 스쿼트 운동<div class="m-desc">Bodyweight Squat · 10회 반복</div></span>
+      <span class="m-arrow">→</span>
+    </button>
+    <button class="mode-btn" onclick="startMode('all')">
+      <span class="m-icon">🔥</span>
+      <span class="m-label">전체 운동 (상체 + 하체)<div class="m-desc">6종 운동 연속 · 총 60회</div></span>
+      <span class="m-arrow">→</span>
+    </button>
+  </div>
+  <div class="footer-text">AI Sports Tech Research Center · Gwangju Health University</div>
+</div>
+
+<!-- ════ EXERCISE ════ -->
+<div id="exerciseScreen">
+  <div id="videoContainer">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="poseCanvas"></canvas>
+    <canvas id="fxCanvas"></canvas>
+
+    <div class="hud-top">
+      <div class="hud-ex-info">
+        <div class="hud-ex-name" id="exName">준비 중...</div>
+        <div class="hud-ex-desc" id="exDesc"></div>
+        <div class="hud-ex-progress" id="exProg"></div>
+      </div>
+      <div class="hud-rep">
+        <div class="hud-rep-num" id="repNum">0</div>
+        <div class="hud-rep-lbl">/ 10</div>
+      </div>
+    </div>
+
+    <div class="angle-box" id="angleBox" style="display:none">
+      <div class="angle-label" id="angleLbl">관절 각도</div>
+      <div><span class="angle-val" id="angleVal">0</span><span class="angle-unit">°</span></div>
+      <div class="angle-status" id="angleStat"></div>
+    </div>
+
+    <div class="hud-bottom">
+      <div class="rep-dots" id="repDots"></div>
+      <div class="progress-bar"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
+    </div>
+
+    <button class="btn-back" onclick="goBack()">← 돌아가기</button>
+    <div class="fb-toast" id="fbToast"></div>
+    <div class="guide-overlay" id="guideOvl"><div class="guide-text" id="guideTxt"></div></div>
+  </div>
+</div>
+
+<!-- ════ TRANSITION ════ -->
+<div id="transitionScreen">
+  <div class="trans-step" id="transStep"></div>
+  <div class="trans-icon" id="transIcon"></div>
+  <div class="trans-name" id="transName"></div>
+  <div class="trans-desc" id="transDesc"></div>
+  <div class="trans-reps" id="transReps"></div>
+  <div class="trans-count" id="transCount">3</div>
+</div>
+
+<!-- ════ COMPLETE ════ -->
+<div id="completeScreen">
+  <div class="comp-emoji">🎉</div>
+  <div class="comp-title">운동 완료!</div>
+  <div class="comp-sub">모든 운동을 성공적으로 마쳤습니다!</div>
+  <div class="comp-stats" id="compStats"></div>
+  <button class="btn-restart" onclick="goHome()">다시 시작하기</button>
+</div>
+
+<!-- ════ MEDIAPIPE ════ -->
+<script type="module">
+import { PoseLandmarker, FilesetResolver, DrawingUtils } from
+  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18";
+
+// ━━━ EXERCISE DB ━━━
+const EXERCISES = {
+  upper: [
+    { id:'biceps_curl', name:'Biceps Curl', nameKr:'바이셉스 컬',
+      desc:'밴드를 잡고 팔꿈치를 굽혀 올리세요', icon:'💪', reps:10,
+      target:'shoulder', color:'#FF3366', fn:'elbowFlex',
+      thUp:55, thDown:140, dir:'curl' },
+    { id:'shoulder_press', name:'Shoulder Press', nameKr:'숄더 프레스',
+      desc:'밴드를 어깨 높이에서 잡고 머리 위로 밀어올리세요', icon:'🏋️', reps:10,
+      target:'aboveHead', color:'#F59E0B', fn:'elbowFlex',
+      thUp:145, thDown:85, dir:'press' },
+    { id:'lateral_raise', name:'Lateral Raise', nameKr:'래터럴 레이즈',
+      desc:'밴드를 잡고 팔을 옆으로 들어올리세요', icon:'🦅', reps:10,
+      target:'aboveHead', color:'#7C3AED', fn:'shoulderAbd',
+      thUp:75, thDown:25, dir:'raise' },
+    { id:'front_raise', name:'Front Raise', nameKr:'프론트 레이즈',
+      desc:'밴드를 잡고 팔을 앞으로 들어올리세요', icon:'🙌', reps:10,
+      target:'aboveHead', color:'#0EA5E9', fn:'shoulderFlex',
+      thUp:75, thDown:25, dir:'raise' },
+    { id:'overhead_pull_apart', name:'Overhead Pull-Apart', nameKr:'오버헤드 풀어파트',
+      desc:'밴드를 머리 위에서 잡고 좌우로 벌리세요', icon:'🤸', reps:10,
+      target:'hands', color:'#06D6A0', fn:'armSpread',
+      thUp:110, thDown:45, dir:'spread' }
+  ],
+  lower: [
+    { id:'squat', name:'Bodyweight Squat', nameKr:'스쿼트',
+      desc:'엉덩이를 뒤로 빼며 무릎을 굽히세요', icon:'🦵', reps:10,
+      target:'hip', color:'#FF3366', fn:'kneeFlex',
+      thUp:95, thDown:155, dir:'squat' }
+  ]
+};
+EXERCISES.all = [...EXERCISES.upper, ...EXERCISES.lower];
+
+// ━━━ STATE ━━━
+let poseLandmarker=null, animId=null, lastVidTime=-1;
+let exList=[], exIdx=0, rep=0, phase='down', active=false;
+let balloons=[], particles=[], popCount=0, startTime=null;
+let repCooldown=false;
+
+// ━━━ AUDIO ━━━
+let audioCtx=null;
+function getAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+
+function playPop(){
+  try{
+    const c=getAudio(),o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);
+    o.frequency.setValueAtTime(800,c.currentTime);
+    o.frequency.exponentialRampToValueAtTime(200,c.currentTime+0.12);
+    g.gain.setValueAtTime(0.25,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01,c.currentTime+0.12);
+    o.start(c.currentTime);o.stop(c.currentTime+0.12);
+    // noise burst
+    const bs=c.sampleRate*0.06,buf=c.createBuffer(1,bs,c.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<bs;i++)d[i]=(Math.random()*2-1)*(1-i/bs);
+    const n=c.createBufferSource();n.buffer=buf;
+    const ng=c.createGain();ng.gain.setValueAtTime(0.15,c.currentTime);
+    ng.gain.exponentialRampToValueAtTime(0.01,c.currentTime+0.06);
+    n.connect(ng);ng.connect(c.destination);n.start(c.currentTime);
+    // vibrate
+    if(navigator.vibrate)navigator.vibrate(50);
+  }catch(e){}
+}
+
+function playSuccess(){
+  try{
+    const c=getAudio();
+    [523.25,659.25,783.99].forEach((f,i)=>{
+      const o=c.createOscillator(),g=c.createGain();
+      o.type='sine';o.frequency.value=f;
+      g.gain.setValueAtTime(0.12,c.currentTime+i*0.1);
+      g.gain.exponentialRampToValueAtTime(0.01,c.currentTime+i*0.1+0.25);
+      o.connect(g);g.connect(c.destination);
+      o.start(c.currentTime+i*0.1);o.stop(c.currentTime+i*0.1+0.25);
+    });
+    if(navigator.vibrate)navigator.vibrate([100,50,100,50,200]);
+  }catch(e){}
+}
+
+function playTick(){
+  try{
+    const c=getAudio(),o=c.createOscillator(),g=c.createGain();
+    o.type='sine';o.frequency.value=880;
+    g.gain.setValueAtTime(0.1,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01,c.currentTime+0.08);
+    o.connect(g);g.connect(c.destination);
+    o.start(c.currentTime);o.stop(c.currentTime+0.08);
+    if(navigator.vibrate)navigator.vibrate(30);
+  }catch(e){}
+}
+
+// ━━━ MEDIAPIPE INIT ━━━
+async function initPose(){
+  const vision=await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm"
+  );
+  poseLandmarker=await PoseLandmarker.createFromOptions(vision,{
+    baseOptions:{
+      modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+      delegate:"GPU"
+    },
+    runningMode:"VIDEO", numPoses:1
+  });
+}
+
+async function startCamera(){
+  const v=document.getElementById('video');
+  const facingMode = /iPhone|iPad|Android/i.test(navigator.userAgent) ? 'user' : 'user';
+  const stream=await navigator.mediaDevices.getUserMedia({
+    video:{facingMode, width:{ideal:1280}, height:{ideal:720}}
+  });
+  v.srcObject=stream;
+  await new Promise(r=>v.onloadedmetadata=r);
+  await v.play();
+  const pc=document.getElementById('poseCanvas');
+  pc.width=v.videoWidth; pc.height=v.videoHeight;
+  const fc=document.getElementById('fxCanvas');
+  fc.width=v.videoWidth; fc.height=v.videoHeight;
+}
+
+// ━━━ ANGLE CALC ━━━
+function ang3(a,b,c){
+  const r=Math.atan2(c.y-b.y,c.x-b.x)-Math.atan2(a.y-b.y,a.x-b.x);
+  let d=Math.abs(r*180/Math.PI); if(d>180)d=360-d; return d;
+}
+
+function getAngle(lm,fn){
+  if(!lm||lm.length<33)return null;
+  switch(fn){
+    case 'elbowFlex':
+      return(ang3(lm[11],lm[13],lm[15])+ang3(lm[12],lm[14],lm[16]))/2;
+    case 'shoulderAbd':case 'shoulderFlex':
+      return(ang3(lm[23],lm[11],lm[15])+ang3(lm[24],lm[12],lm[16]))/2;
+    case 'armSpread':{
+      const wd=Math.abs(lm[15].x-lm[16].x), sd=Math.abs(lm[11].x-lm[12].x);
+      return sd>0.01?Math.min(180,(wd/sd)*60):null;
+    }
+    case 'kneeFlex':
+      return(ang3(lm[23],lm[25],lm[27])+ang3(lm[24],lm[26],lm[28]))/2;
+    default:return null;
+  }
+}
+
+// ━━━ BALLOON SYSTEM ━━━
+function getBalloonPos(lm,target,w,h){
+  if(!lm||lm.length<33)return null;
+  switch(target){
+    case 'shoulder':{
+      const x=((lm[11].x+lm[12].x)/2)*w, y=((lm[11].y+lm[12].y)/2)*h-55;
+      return{x,y};
+    }
+    case 'aboveHead':{
+      const x=((lm[11].x+lm[12].x)/2)*w;
+      const y=Math.min(lm[11].y,lm[12].y)*h-85;
+      return{x,y:Math.max(35,y)};
+    }
+    case 'hands':{
+      const x=((lm[15].x+lm[16].x)/2)*w;
+      const y=((lm[15].y+lm[16].y)/2)*h-35;
+      return{x,y:Math.max(35,y)};
+    }
+    case 'hip':{
+      const x=((lm[23].x+lm[24].x)/2)*w;
+      const y=((lm[23].y+lm[24].y)/2)*h;
+      return{x,y};
+    }
+    default:return null;
+  }
+}
+
+function spawnBalloon(){
+  balloons=[];
+  const ex=exList[exIdx]; if(!ex)return;
+  const cv=document.getElementById('poseCanvas');
+  const cx=(cv.width||640)/2;
+  const cy=(cv.height||480)*(ex.target==='hip'?0.6:0.25);
+  balloons.push({
+    x:cx, y:cy, color:ex.color, size:42+Math.random()*14,
+    bobPhase:Math.random()*Math.PI*2, bobSpeed:2+Math.random()*2,
+    alive:true, scale:0, targetScale:1
+  });
+}
+
+function popAllBalloons(){
+  playPop();
+  balloons.forEach(b=>{
+    if(!b.alive)return; b.alive=false;
+    const np=22+Math.floor(Math.random()*12);
+    for(let i=0;i<np;i++){
+      const a=(Math.PI*2/np)*i+(Math.random()-0.5)*0.5;
+      const sp=3+Math.random()*8;
+      particles.push({x:b.x,y:b.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-3,
+        size:3+Math.random()*7,color:b.color,life:1,decay:0.018+Math.random()*0.02,
+        gravity:0.15,isConfetti:false});
+    }
+    const cc=['#FFD700','#FF6B9D','#06D6A0','#38BDF8','#A78BFA'];
+    for(let i=0;i<10;i++){
+      particles.push({
+        x:b.x+(Math.random()-0.5)*36, y:b.y+(Math.random()-0.5)*36,
+        vx:(Math.random()-0.5)*6, vy:-Math.random()*8-2,
+        size:4+Math.random()*5, color:cc[Math.floor(Math.random()*5)],
+        life:1, decay:0.012+Math.random()*0.015, gravity:0.1,
+        isConfetti:true, rotation:Math.random()*360, rotSpeed:(Math.random()-0.5)*15
+      });
+    }
+  });
+}
+
+function drawBalloon(ctx,b,t){
+  if(!b.alive)return;
+  b.scale+=(b.targetScale-b.scale)*0.1;
+  const by=Math.sin(t*b.bobSpeed+b.bobPhase)*5;
+  const dx=b.x, dy=b.y+by, s=b.size*b.scale;
+  ctx.save(); ctx.translate(dx,dy);
+  // string
+  ctx.beginPath();ctx.moveTo(0,s*0.7);
+  ctx.quadraticCurveTo(3,s*0.7+18,-2,s*0.7+36);
+  ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.2;ctx.stroke();
+  // body
+  ctx.beginPath();ctx.ellipse(0,0,s*0.6,s*0.75,0,0,Math.PI*2);
+  const gr=ctx.createRadialGradient(-s*0.12,-s*0.18,s*0.08,0,0,s*0.75);
+  gr.addColorStop(0,lighten(b.color,55));gr.addColorStop(0.5,b.color);gr.addColorStop(1,darken(b.color,25));
+  ctx.fillStyle=gr;ctx.fill();
+  // shine
+  ctx.beginPath();ctx.ellipse(-s*0.16,-s*0.28,s*0.13,s*0.2,-0.4,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.fill();
+  // knot
+  ctx.beginPath();ctx.moveTo(-3,s*0.65);ctx.lineTo(0,s*0.75);ctx.lineTo(3,s*0.65);
+  ctx.fillStyle=darken(b.color,18);ctx.fill();
+  ctx.restore();
+}
+
+function drawParticles(ctx){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx; p.y+=p.vy; p.vy+=p.gravity; p.life-=p.decay;
+    if(p.life<=0){particles.splice(i,1);continue;}
+    ctx.save();ctx.globalAlpha=p.life;ctx.translate(p.x,p.y);
+    if(p.isConfetti){
+      p.rotation+=p.rotSpeed;ctx.rotate(p.rotation*Math.PI/180);
+      ctx.fillStyle=p.color;ctx.fillRect(-p.size/2,-p.size/4,p.size,p.size/2);
+    }else{
+      ctx.beginPath();ctx.arc(0,0,p.size*p.life,0,Math.PI*2);
+      ctx.fillStyle=p.color;ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+function lighten(h,a){let r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);
+  return`rgb(${Math.min(255,r+a)},${Math.min(255,g+a)},${Math.min(255,b+a)})`;}
+function darken(h,a){let r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);
+  return`rgb(${Math.max(0,r-a)},${Math.max(0,g-a)},${Math.max(0,b-a)})`;}
+
+// ━━━ UI HELPERS ━━━
+function showFB(t){
+  const el=document.getElementById('fbToast');
+  el.className='fb-toast';el.textContent=t;
+  void el.offsetWidth;el.classList.add('show');
+}
+
+function updateDots(total,done){
+  const c=document.getElementById('repDots');c.innerHTML='';
+  for(let i=0;i<total;i++){
+    const d=document.createElement('div');
+    d.className='rep-dot'+(i<done?' done':(i===done?' current':''));
+    if(i<done)d.textContent='✓';
+    c.appendChild(d);
+  }
+}
+
+function updateProgress(){
+  const totalR=exList.reduce((s,e)=>s+e.reps,0);
+  let done=0; for(let i=0;i<exIdx;i++)done+=exList[i].reps;
+  done+=rep;
+  document.getElementById('progFill').style.width=(done/totalR*100)+'%';
+  document.getElementById('exProg').textContent=`운동 ${exIdx+1} / ${exList.length}`;
+}
+
+// ━━━ REP LOGIC ━━━
+function checkRep(angle,ex){
+  if(angle===null||!active||repCooldown)return;
+  const d=ex.dir;
+  if(d==='curl'){
+    if(phase==='down'&&angle<=ex.thUp){phase='up';triggerPop();}
+    else if(phase==='up'&&angle>=ex.thDown-15){phase='down';spawnBalloon();}
+  }else if(d==='press'){
+    if(phase==='down'&&angle>=ex.thUp){phase='up';triggerPop();}
+    else if(phase==='up'&&angle<=ex.thDown+10){phase='down';spawnBalloon();}
+  }else if(d==='raise'||d==='spread'){
+    if(phase==='down'&&angle>=ex.thUp){phase='up';triggerPop();}
+    else if(phase==='up'&&angle<=ex.thDown+10){phase='down';spawnBalloon();}
+  }else if(d==='squat'){
+    if(phase==='down'&&angle<=ex.thUp){phase='up';triggerPop();}
+    else if(phase==='up'&&angle>=ex.thDown-10){phase='down';spawnBalloon();}
+  }
+}
+
+function triggerPop(){
+  popAllBalloons(); rep++; popCount++;
+  repCooldown=true; setTimeout(()=>{repCooldown=false;},400);
+  document.getElementById('repNum').textContent=rep;
+  updateDots(exList[exIdx].reps,rep);
+  updateProgress();
+  const fb=['펑! 💥','터졌다! 🎈','좋아요! 👏','완벽! ✨','파워! 💪','대단해! 🔥'];
+  const ms={5:'절반 완료! 🏆',8:'거의 다 왔어요! 🎯',10:'완벽! 🎉'};
+  showFB(ms[rep]||fb[Math.floor(Math.random()*fb.length)]);
+  if(rep>=exList[exIdx].reps){
+    setTimeout(()=>nextExercise(),1200);
+  }
+}
+
+function nextExercise(){
+  exIdx++;
+  if(exIdx>=exList.length){finishWorkout();return;}
+  showTransition();
+}
+
+function showTransition(){
+  active=false;
+  const s=document.getElementById('transitionScreen');
+  const ex=exList[exIdx];
+  document.getElementById('transStep').textContent=`${exIdx+1} / ${exList.length}`;
+  document.getElementById('transIcon').textContent=ex.icon;
+  document.getElementById('transName').textContent=ex.nameKr;
+  document.getElementById('transDesc').textContent=ex.desc;
+  document.getElementById('transReps').textContent=`${ex.reps}회 반복`;
+  s.classList.add('active');
+  let cnt=3;
+  document.getElementById('transCount').textContent=cnt;
+  playTick();
+  const iv=setInterval(()=>{
+    cnt--;
+    if(cnt<=0){clearInterval(iv);s.classList.remove('active');beginExercise();}
+    else{document.getElementById('transCount').textContent=cnt;playTick();}
+  },1000);
+}
+
+function beginExercise(){
+  const ex=exList[exIdx];
+  rep=0; phase='down'; balloons=[]; particles=[]; active=true;
+  document.getElementById('exName').textContent=`${ex.icon} ${ex.nameKr}`;
+  document.getElementById('exDesc').textContent=ex.desc;
+  document.getElementById('repNum').textContent='0';
+  updateDots(ex.reps,0); updateProgress();
+  document.getElementById('angleBox').style.display='block';
+  const labels={kneeFlex:'무릎 각도',elbowFlex:'팔꿈치 각도',shoulderAbd:'어깨 각도',shoulderFlex:'어깨 각도',armSpread:'팔 벌림'};
+  document.getElementById('angleLbl').textContent=labels[ex.fn]||'관절 각도';
+  // Guide
+  const g=document.getElementById('guideOvl'),t=document.getElementById('guideTxt');
+  t.innerHTML=`<span class="guide-hl">${ex.nameKr}</span><br>${ex.desc}<br><br>${ex.reps}회 반복`;
+  g.classList.add('active');
+  setTimeout(()=>g.classList.remove('active'),2500);
+  spawnBalloon();
+}
+
+function finishWorkout(){
+  active=false; playSuccess();
+  const elapsed=Math.floor((Date.now()-startTime)/1000);
+  const mm=Math.floor(elapsed/60), ss=elapsed%60;
+  document.getElementById('exerciseScreen').classList.remove('active');
+  document.getElementById('completeScreen').classList.add('active');
+  document.getElementById('compStats').innerHTML=`
+    <div class="stat-card"><div class="stat-num">${popCount}</div><div class="stat-lbl">🎈 터트린 풍선</div></div>
+    <div class="stat-card"><div class="stat-num">${exList.length}</div><div class="stat-lbl">✅ 완료 운동</div></div>
+    <div class="stat-card"><div class="stat-num">${mm}:${ss.toString().padStart(2,'0')}</div><div class="stat-lbl">⏱ 운동 시간</div></div>
+  `;
+}
+
+// ━━━ RENDER LOOP ━━━
+let latestLM=null;
+
+function renderLoop(){
+  const v=document.getElementById('video');
+  const pc=document.getElementById('poseCanvas'), ctx=pc.getContext('2d');
+  const fc=document.getElementById('fxCanvas'), fctx=fc.getContext('2d');
+
+  if(v.readyState>=2 && v.currentTime!==lastVidTime && poseLandmarker){
+    lastVidTime=v.currentTime;
+    const results=poseLandmarker.detectForVideo(v,performance.now());
+    ctx.clearRect(0,0,pc.width,pc.height);
+    if(results.landmarks&&results.landmarks.length>0){
+      latestLM=results.landmarks[0];
+      const du=new DrawingUtils(ctx);
+      du.drawConnectors(latestLM,PoseLandmarker.POSE_CONNECTIONS,{color:'rgba(255,255,255,0.2)',lineWidth:2});
+      du.drawLandmarks(latestLM,{color:'rgba(6,214,160,0.6)',radius:3});
+
+      if(active&&exIdx<exList.length){
+        const ex=exList[exIdx];
+        const angle=getAngle(latestLM,ex.fn);
+        if(angle!==null){
+          document.getElementById('angleVal').textContent=Math.round(angle);
+          const st=document.getElementById('angleStat');
+          if(ex.dir==='squat'){st.textContent=angle<110?'⬇ 앉는 중':'⬆ 일어서기';st.className='angle-status '+(angle<110?'down':'up');}
+          else if(ex.dir==='curl'){st.textContent=angle<90?'⬆ 컬링!':'⬇ 내리기';st.className='angle-status '+(angle<90?'up':'down');}
+          else if(ex.dir==='press'){st.textContent=angle>130?'⬆ 프레스!':'⬇ 내리기';st.className='angle-status '+(angle>130?'up':'down');}
+          else{st.textContent=angle>60?'⬆ 올리기!':'⬇ 내리기';st.className='angle-status '+(angle>60?'up':'down');}
+        }
+        checkRep(angle,ex);
+        const pos=getBalloonPos(latestLM,ex.target,pc.width,pc.height);
+        if(pos){balloons.forEach(b=>{if(b.alive){b.x+=(pos.x-b.x)*0.13;b.y+=(pos.y-b.y)*0.13;}});}
+      }
+    }
+  }
+
+  fctx.clearRect(0,0,fc.width,fc.height);
+  const t=performance.now()/1000;
+  fctx.save();fctx.translate(fc.width,0);fctx.scale(-1,1);
+  balloons.forEach(b=>drawBalloon(fctx,b,t));
+  drawParticles(fctx);
+  fctx.restore();
+
+  animId=requestAnimationFrame(renderLoop);
+}
+
+// ━━━ MODE START ━━━
+window.startMode=async function(mode){
+  exList=[...EXERCISES[mode]]; exIdx=0; rep=0; popCount=0;
+  phase='down'; balloons=[]; particles=[]; startTime=Date.now();
+
+  document.getElementById('exerciseSelect').style.display='none';
+  document.getElementById('loadingBox').style.display='block';
+
+  try{
+    if(!poseLandmarker)await initPose();
+    await startCamera();
+  }catch(e){
+    alert('카메라 접근이 필요합니다.\n카메라 권한을 허용해주세요.\n\n오류: '+e.message);
+    document.getElementById('exerciseSelect').style.display='flex';
+    document.getElementById('loadingBox').style.display='none';
+    return;
+  }
+
+  document.getElementById('loadingBox').style.display='none';
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('exerciseScreen').classList.add('active');
+  renderLoop();
+  showTransition();
+};
+
+window.goBack=function(){
+  active=false;
+  if(animId)cancelAnimationFrame(animId); animId=null;
+  const v=document.getElementById('video');
+  if(v.srcObject){v.srcObject.getTracks().forEach(t=>t.stop());v.srcObject=null;}
+  document.getElementById('exerciseScreen').classList.remove('active');
+  document.getElementById('transitionScreen').classList.remove('active');
+  document.getElementById('angleBox').style.display='none';
+  document.getElementById('startScreen').classList.remove('hidden');
+  document.getElementById('exerciseSelect').style.display='flex';
+};
+
+window.goHome=function(){
+  document.getElementById('completeScreen').classList.remove('active');
+  active=false;
+  if(animId)cancelAnimationFrame(animId); animId=null;
+  const v=document.getElementById('video');
+  if(v.srcObject){v.srcObject.getTracks().forEach(t=>t.stop());v.srcObject=null;}
+  document.getElementById('startScreen').classList.remove('hidden');
+  document.getElementById('exerciseSelect').style.display='flex';
+};
+</script>
+</body>
+</html>
