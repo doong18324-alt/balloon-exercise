@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>AI 맞춤형 운동 트레이너</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;600;700;900&display=swap');
+:root{--pri:#FF3366;--sec:#7C3AED;--acc:#06D6A0;--dk:#0B0E1A;--card:rgba(255,255,255,0.04);--bdr:rgba(255,255,255,0.08)}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--dk);color:#fff;overflow-x:hidden;min-height:100vh;min-height:100dvh}
+.screen{display:none;min-height:100vh;min-height:100dvh}.screen.active{display:flex;flex-direction:column}
+.container{width:min(95vw,500px);margin:0 auto;padding:0 16px}
+.bg-grad{background:linear-gradient(160deg,#0B0E1A 0%,#1a1040 50%,#0B0E1A 100%)}
+.section-title{font-family:'Black Han Sans';font-size:clamp(18px,4.5vw,24px);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:16px;margin-bottom:12px}
+.label{font-size:13px;color:#94a3b8;margin-bottom:6px;font-weight:600}
+input[type=number]{width:100%;padding:12px 14px;background:rgba(255,255,255,0.06);border:1px solid var(--bdr);border-radius:12px;color:#fff;font-size:16px;font-family:inherit;outline:none;-webkit-appearance:none}
+input:focus{border-color:var(--pri)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 28px;border:none;border-radius:50px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.3s;color:#fff;width:100%}
+.btn-primary{background:linear-gradient(135deg,var(--pri),var(--sec))}.btn-primary:hover{transform:scale(1.02)}
+.btn-secondary{background:rgba(255,255,255,0.08);border:1px solid var(--bdr)}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.tag-grid{display:flex;flex-wrap:wrap;gap:8px}
+.tag{padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;border:1.5px solid var(--bdr);background:transparent;color:#94a3b8;cursor:pointer;transition:all 0.3s;font-family:inherit}
+.tag.sel{border-color:var(--pri);background:rgba(255,51,102,0.12);color:#fff}
+.tag.nrm.sel{border-color:var(--acc);background:rgba(6,214,160,0.12);color:var(--acc)}
+.scroll-body{flex:1;overflow-y:auto;padding:20px 0 40px;-webkit-overflow-scrolling:touch}
+.hbar{padding:max(env(safe-area-inset-top),12px) 16px 12px;background:rgba(11,14,26,0.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);position:sticky;top:0;z-index:20}
+.hbar h2{font-size:18px;font-weight:800;text-align:center}.hbar .bk{position:absolute;left:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer}
+.steps{display:flex;gap:4px;justify-content:center;margin-top:8px}.sd{width:24px;height:3px;border-radius:2px;background:rgba(255,255,255,0.1)}.sd.on{background:var(--pri)}.sd.ok{background:var(--acc)}
+#homeScreen{align-items:center;justify-content:center;padding:20px}
+.htitle{font-family:'Black Han Sans';font-size:clamp(28px,7vw,48px);background:linear-gradient(135deg,#FF3366,#FF6B9D,#7C3AED);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;line-height:1.2}
+.hsub{font-size:14px;color:#94a3b8;text-align:center;margin:12px 0 24px;line-height:1.6}
+.feats{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(92vw,380px);margin-bottom:24px}
+.feat{padding:12px;border-radius:14px;background:var(--card);border:1px solid var(--bdr);text-align:center;font-size:11px;color:#94a3b8}
+.feat span{display:block;font-size:22px;margin-bottom:4px}
+.risk-badge{display:inline-flex;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700}
+.rl{background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3)}
+.rm{background:rgba(245,158,11,0.15);color:#F59E0B;border:1px solid rgba(245,158,11,0.3)}
+.rh{background:rgba(255,51,102,0.15);color:#FF3366;border:1px solid rgba(255,51,102,0.3)}
+.brec{display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;background:var(--card);border:1px solid var(--bdr)}
+.bcirc{width:48px;height:48px;border-radius:50%;flex-shrink:0;border:2px solid rgba(255,255,255,0.15)}
+.dgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dbtn{padding:14px 8px;border-radius:14px;background:var(--card);border:2px solid var(--bdr);color:#fff;font-size:15px;font-weight:700;cursor:pointer;text-align:center;font-family:inherit;transition:all 0.3s}
+.dbtn.sel{border-color:var(--pri);background:rgba(255,51,102,0.1)}
+.dbtn small{display:block;font-size:11px;color:#94a3b8;font-weight:400;margin-top:2px}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.tbtn{padding:16px;border-radius:14px;background:var(--card);border:2px solid var(--bdr);color:#fff;cursor:pointer;font-family:inherit;transition:all 0.3s;text-align:center}
+.tbtn.sel{border-color:var(--sec);background:rgba(124,58,237,0.1)}
+.tbtn .ti{font-size:28px}.tbtn .tn{font-size:14px;font-weight:700;margin-top:4px}.tbtn .td{font-size:11px;color:#94a3b8;margin-top:2px}
+.ep{display:flex;gap:12px;align-items:center;padding:14px;border-radius:14px;background:var(--card);border:1px solid var(--bdr);margin-bottom:8px;cursor:pointer}
+.ep .ei{font-size:28px;flex-shrink:0}
+.istep{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.03)}
+.istep-n{width:20px;height:20px;border-radius:50%;background:var(--pri);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.icaut{padding:8px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);font-size:12px;color:#F59E0B;margin-top:8px}
+/* Camera */
+#camScreen{padding:0;overflow:hidden;position:relative;height:100vh;height:100dvh}
+#vbox{position:relative;width:100%;height:100%;background:#000}
+video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#pc{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);z-index:2}
+#fc{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none}
+.cht{position:absolute;top:0;left:0;right:0;z-index:10;padding:max(env(safe-area-inset-top),10px) 14px 10px;display:flex;justify-content:space-between;align-items:flex-start;background:linear-gradient(180deg,rgba(0,0,0,0.8) 0%,transparent 100%)}
+.cinfo{max-width:62%}.cname{font-family:'Black Han Sans';font-size:clamp(16px,4vw,24px);background:linear-gradient(135deg,#FF3366,#FF6B9D);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}.cdesc{font-size:11px;color:#94a3b8}.cprog{font-size:10px;color:#64748b;margin-top:2px}.ctimer{font-size:11px;color:var(--acc);font-weight:600;margin-top:3px}
+.crep{display:flex;flex-direction:column;align-items:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;padding:8px 16px;border:1px solid rgba(255,255,255,0.06)}
+.crep-n{font-family:'Black Han Sans';font-size:40px;line-height:1;color:#fff;transition:transform 0.25s,color 0.25s}.crep-l{font-size:10px;color:#94a3b8}
+/* State indicator */
+.cstate{position:absolute;top:50%;left:10px;z-index:10;transform:translateY(-50%);background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.05);text-align:center;min-width:70px}
+.cstate .cs-icon{font-size:28px}.cstate .cs-txt{font-size:10px;color:#94a3b8;margin-top:4px}
+.cstate.ready .cs-icon{animation:pulse2 1s ease-in-out infinite}
+@keyframes pulse2{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+.chb{position:absolute;bottom:0;left:0;right:0;z-index:10;padding:10px 14px max(env(safe-area-inset-bottom),14px);background:linear-gradient(0deg,rgba(0,0,0,0.8) 0%,transparent 100%)}
+.cdots{display:flex;justify-content:center;gap:5px;margin-bottom:10px;flex-wrap:wrap}
+.cdot{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.12);font-size:8px;color:transparent;display:flex;align-items:center;justify-content:center;transition:all 0.3s}
+.cdot.dn{background:var(--pri);border-color:var(--pri);color:#fff;transform:scale(1.1)}.cdot.cu{border-color:var(--acc);box-shadow:0 0 8px rgba(6,214,160,0.4)}
+.cpbar{height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}.cpfill{height:100%;border-radius:2px;transition:width 0.5s;background:linear-gradient(90deg,var(--pri),var(--sec))}
+.cbk{position:absolute;bottom:max(env(safe-area-inset-bottom),14px);right:14px;z-index:10;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:7px 14px;border-radius:10px;font-family:inherit;font-size:12px;cursor:pointer}
+.fbt{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%) scale(0);z-index:20;pointer-events:none;font-family:'Black Han Sans';font-size:clamp(36px,10vw,72px);color:#fff;text-shadow:0 4px 30px rgba(255,51,102,0.9),0 0 60px rgba(124,58,237,0.5);opacity:0}
+.fbt.show{animation:tpop 1s cubic-bezier(0.34,1.56,0.64,1) forwards}
+@keyframes tpop{0%{transform:translate(-50%,-50%) scale(0) rotate(-10deg);opacity:0}25%{transform:translate(-50%,-50%) scale(1.4) rotate(5deg);opacity:1}50%{transform:translate(-50%,-50%) scale(1) rotate(0deg);opacity:1}100%{transform:translate(-50%,-60%) scale(0.7) rotate(-5deg);opacity:0}}
+/* Trans */
+#trScr{position:fixed;inset:0;z-index:50;background:rgba(11,14,26,0.95);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+#trScr.on{display:flex}
+.trs{font-size:12px;color:#64748b}.tri{font-size:56px}.trn{font-family:'Black Han Sans';font-size:clamp(24px,6vw,44px);text-align:center;background:linear-gradient(135deg,var(--acc),var(--sec));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}.trd{font-size:14px;color:#94a3b8;text-align:center;max-width:85%}.trr{font-size:13px;color:var(--pri);font-weight:700}.trc{font-family:'Black Han Sans';font-size:72px;color:#fff;margin-top:8px}
+/* Complete */
+#compScreen{align-items:center;justify-content:center;padding:20px;text-align:center}
+.ce{font-size:64px;animation:bce 1s ease infinite}@keyframes bce{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px) rotate(6deg)}}
+.ct{font-family:'Black Han Sans';font-size:clamp(26px,6vw,48px);background:linear-gradient(135deg,#FFD700,#FF6B9D,#7C3AED);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.csu{font-size:14px;color:#94a3b8;margin:8px 0 20px}
+.csts{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:20px}
+.sc{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:14px 18px;text-align:center;min-width:90px}
+.sn{font-family:'Black Han Sans';font-size:28px;color:var(--acc)}.sl{font-size:11px;color:#94a3b8;margin-top:2px}
+.cbtns{display:flex;flex-direction:column;gap:10px;width:min(90vw,360px)}
+.footer{text-align:center;font-size:10px;color:#334155;padding:16px 0}
+</style>
+</head>
+<body>
+<div id="homeScreen" class="screen active bg-grad">
+<div class="htitle">AI 맞춤형<br>운동 트레이너</div>
+<div class="hsub">ACSM 평가 → 맞춤 프로그램 → 풍선 터트리기 → PDF 리포트</div>
+<div class="feats"><div class="feat"><span>📋</span>ACSM 평가</div><div class="feat"><span>🎈</span>풍선 운동</div><div class="feat"><span>🥗</span>식이 제안</div><div class="feat"><span>📄</span>PDF 리포트</div></div>
+<button class="btn btn-primary" style="width:min(92vw,380px)" onclick="go('profScreen')">시작하기 →</button>
+<div class="footer">AI Sports Tech Research Center · Gwangju Health University</div>
+</div>
+
+<div id="profScreen" class="screen bg-grad">
+<div class="hbar"><button class="bk" onclick="go('homeScreen')">←</button><h2>기본 정보 입력</h2><div class="steps"><div class="sd on"></div><div class="sd"></div><div class="sd"></div><div class="sd"></div></div></div>
+<div class="scroll-body"><div class="container">
+<div class="card"><div class="section-title">👤 인적 사항</div>
+<div class="label">연령</div><input type="number" id="iAge" placeholder="65" min="10" max="120">
+<div style="height:10px"></div>
+<div class="row"><div><div class="label">키 (cm)</div><input type="number" id="iHt" placeholder="165"></div><div><div class="label">체중 (kg)</div><input type="number" id="iWt" placeholder="70"></div></div>
+<div style="height:10px"></div>
+<div class="label">성별</div>
+<div class="row"><button class="tag sel" data-s="m" onclick="pickSex(this)">남성</button><button class="tag" data-s="f" onclick="pickSex(this)">여성</button></div></div>
+<div class="card"><div class="section-title">🏥 기저질환</div>
+<div class="label" style="margin-bottom:10px">해당 항목 선택 (없으면 '정상')</div>
+<div class="tag-grid" id="cTags">
+<button class="tag nrm" data-c="normal" onclick="pickC(this)">✅ 정상</button>
+<button class="tag" data-c="hypertension" onclick="pickC(this)">고혈압</button>
+<button class="tag" data-c="diabetes" onclick="pickC(this)">당뇨병</button>
+<button class="tag" data-c="heart" onclick="pickC(this)">심장질환</button>
+<button class="tag" data-c="arthritis" onclick="pickC(this)">관절염</button>
+<button class="tag" data-c="osteoporosis" onclick="pickC(this)">골다공증</button>
+<button class="tag" data-c="backpain" onclick="pickC(this)">허리통증</button>
+<button class="tag" data-c="kneepain" onclick="pickC(this)">무릎통증</button>
+<button class="tag" data-c="shoulderpain" onclick="pickC(this)">어깨통증</button>
+<button class="tag" data-c="respiratory" onclick="pickC(this)">호흡기질환</button>
+<button class="tag" data-c="obesity" onclick="pickC(this)">비만</button>
+<button class="tag" data-c="sarcopenia" onclick="pickC(this)">근감소증</button>
+</div></div>
+<button class="btn btn-primary" onclick="submitProf()">다음: ACSM 평가 →</button>
+<div style="height:24px"></div></div></div></div>
+
+<div id="assessScreen" class="screen bg-grad"><div class="hbar"><button class="bk" onclick="go('profScreen')">←</button><h2>ACSM 평가 결과</h2><div class="steps"><div class="sd ok"></div><div class="sd on"></div><div class="sd"></div><div class="sd"></div></div></div><div class="scroll-body"><div class="container" id="asCont"></div></div></div>
+<div id="progScreen" class="screen bg-grad"><div class="hbar"><button class="bk" onclick="go('assessScreen')">←</button><h2>프로그램 설정</h2><div class="steps"><div class="sd ok"></div><div class="sd ok"></div><div class="sd on"></div><div class="sd"></div></div></div><div class="scroll-body"><div class="container" id="pgCont"></div></div></div>
+<div id="instrScreen" class="screen bg-grad"><div class="hbar"><button class="bk" onclick="go('progScreen')">←</button><h2>운동 미리보기</h2><div class="steps"><div class="sd ok"></div><div class="sd ok"></div><div class="sd ok"></div><div class="sd on"></div></div></div><div class="scroll-body"><div class="container" id="inCont"></div></div></div>
+
+<div id="camScreen" class="screen"><div id="vbox"><video id="vid" autoplay playsinline muted></video><canvas id="pc"></canvas><canvas id="fc"></canvas>
+<div class="cht"><div class="cinfo"><div class="cname" id="cn"></div><div class="cdesc" id="cd"></div><div class="cprog" id="cp"></div><div class="ctimer" id="ctm"></div></div><div class="crep"><div class="crep-n" id="crn">0</div><div class="crep-l">/ <span id="crm">10</span></div></div></div>
+<div class="cstate" id="cst"><div class="cs-icon" id="csi">🎈</div><div class="cs-txt" id="cstxt">준비</div></div>
+<div class="chb"><div class="cdots" id="cdots"></div><div class="cpbar"><div class="cpfill" id="cpf" style="width:0%"></div></div></div>
+<button class="cbk" onclick="exitEx()">← 종료</button><div class="fbt" id="fbt"></div></div></div>
+
+<div id="trScr"><div class="trs" id="trs"></div><div class="tri" id="tri"></div><div class="trn" id="trn"></div><div class="trd" id="trd"></div><div class="trr" id="trr"></div><div class="trc" id="trc">5</div></div>
+
+<div id="compScreen" class="screen bg-grad"><div class="ce">🎉</div><div class="ct">운동 완료!</div><div class="csu" id="csub"></div><div class="csts" id="cstats"></div>
+<div class="cbtns"><button class="btn btn-primary" onclick="makePDF()">📄 PDF 리포트 다운로드</button><button class="btn btn-secondary" onclick="location.reload()">🏠 처음으로</button></div></div>
+
+<script type="module">
+import{PoseLandmarker,FilesetResolver,DrawingUtils}from"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18";
+
+/* ═══ STATE ═══ */
+const P={age:0,ht:0,wt:0,sex:'m',bmi:0,conds:[],risk:'low',hrMax:0,hrZ:[0,0],bandName:'',bandHex:'',bandR:'',bandD:'',dur:10,useBand:true,prog:[],exList:[],exI:0,rep:0,phase:'down',on:false,pops:0,t0:null,bmr:0,tdee:0,cal:0,exRec:[],dietRec:[]};
+let pose=null,anim=null,lvt=-1,balloons=[],particles=[],actx=null,tmr=null;
+
+/* ═══ AUDIO ═══ */
+function ac(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();return actx}
+function sndPop(){try{const c=ac(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.setValueAtTime(900,c.currentTime);o.frequency.exponentialRampToValueAtTime(150,c.currentTime+0.15);g.gain.setValueAtTime(0.3,c.currentTime);g.gain.exponentialRampToValueAtTime(0.01,c.currentTime+0.15);o.start();o.stop(c.currentTime+0.15);const bs=c.sampleRate*0.07,buf=c.createBuffer(1,bs,c.sampleRate),d=buf.getChannelData(0);for(let i=0;i<bs;i++)d[i]=(Math.random()*2-1)*(1-i/bs);const n=c.createBufferSource();n.buffer=buf;const ng=c.createGain();ng.gain.setValueAtTime(0.2,c.currentTime);ng.gain.exponentialRampToValueAtTime(0.01,c.currentTime+0.07);n.connect(ng);ng.connect(c.destination);n.start();if(navigator.vibrate)navigator.vibrate(60)}catch(e){}}
+function sndWin(){try{const c=ac();[523,659,784,1047].forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0.15,c.currentTime+i*0.12);g.gain.exponentialRampToValueAtTime(0.01,c.currentTime+i*0.12+0.3);o.connect(g);g.connect(c.destination);o.start(c.currentTime+i*0.12);o.stop(c.currentTime+i*0.12+0.3)});if(navigator.vibrate)navigator.vibrate([100,50,100,50,200])}catch(e){}}
+function sndTick(){try{const c=ac(),o=c.createOscillator(),g=c.createGain();o.frequency.value=880;g.gain.setValueAtTime(0.08,c.currentTime);g.gain.exponentialRampToValueAtTime(0.01,c.currentTime+0.06);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+0.06);if(navigator.vibrate)navigator.vibrate(25)}catch(e){}}
+
+/* ═══ NAV ═══ */
+window.go=function(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0)};
+window.pickSex=function(el){document.querySelectorAll('[data-s]').forEach(t=>t.classList.remove('sel'));el.classList.add('sel');P.sex=el.dataset.s};
+window.pickC=function(el){const c=el.dataset.c;if(c==='normal'){document.querySelectorAll('#cTags .tag').forEach(t=>t.classList.remove('sel'));el.classList.add('sel');P.conds=['normal'];return}document.querySelector('[data-c="normal"]').classList.remove('sel');el.classList.toggle('sel');P.conds=[...document.querySelectorAll('#cTags .tag.sel')].map(t=>t.dataset.c).filter(c=>c!=='normal');if(!P.conds.length){document.querySelector('[data-c="normal"]').classList.add('sel');P.conds=['normal']}};
+window.submitProf=function(){P.age=+document.getElementById('iAge').value||0;P.ht=+document.getElementById('iHt').value||0;P.wt=+document.getElementById('iWt').value||0;if(!P.age||!P.ht||!P.wt){alert('연령, 키, 체중을 입력해주세요');return}assess();go('assessScreen')};
+
+/* ═══ ASSESS ═══ */
+function assess(){
+P.bmi=+(P.wt/(P.ht/100)**2).toFixed(1);P.hrMax=220-P.age;
+let rf=0;if(P.age>=(P.sex==='m'?45:55))rf++;if(P.bmi>=30)rf++;['hypertension','diabetes','obesity'].forEach(c=>{if(P.conds.includes(c))rf++});
+P.risk=P.conds.some(c=>['heart','respiratory'].includes(c))?'high':rf>=2?'moderate':'low';
+const z={low:[0.57,0.63],moderate:[0.50,0.57],high:[0.40,0.50]}[P.risk];P.hrZ=[Math.round(P.hrMax*z[0]),Math.round(P.hrMax*z[1])];
+P.bmr=P.sex==='m'?Math.round(10*P.wt+6.25*P.ht-5*P.age+5):Math.round(10*P.wt+6.25*P.ht-5*P.age-161);P.tdee=Math.round(P.bmr*1.375);P.cal=P.bmi>=25?P.tdee-300:P.bmi<18.5?P.tdee+300:P.tdee;
+let lv=P.age>=75?1:P.age>=65?2:P.age>=50?3:P.age>=35?4:5;
+if(P.conds.some(c=>['arthritis','shoulderpain','sarcopenia','heart','respiratory'].includes(c)))lv=Math.max(1,lv-1);
+if(P.bmi<18.5)lv=Math.max(1,lv-1);
+const bs=[{n:'노란색',h:'#FBBF24',r:'가장 약함 1.5-2.5kg',d:'고령자/재활/초보'},{n:'빨간색',h:'#EF4444',r:'약함 3-4kg',d:'초보/경도 저하'},{n:'초록색',h:'#22C55E',r:'중간 5-7kg',d:'일반 성인'},{n:'파란색',h:'#3B82F6',r:'강함 8-12kg',d:'경험자'},{n:'검정색',h:'#1E293B',r:'가장 강함 13-18kg',d:'고급자'}];
+const b=bs[lv-1];P.bandName=b.n;P.bandHex=b.h;P.bandR=b.r;P.bandD=b.d;
+const il={low:'중강도 RPE 5-6',moderate:'저-중강도 RPE 4-5',high:'저강도 RPE 3-4'};
+P.exRec=[`운동 강도: ${il[P.risk]}`,`목표 심박수: ${P.hrZ[0]}-${P.hrZ[1]} bpm`,`권장 빈도: 주 ${P.risk==='high'?3:'3-5'}회`];
+['kneepain','shoulderpain','backpain','hypertension','osteoporosis'].forEach(c=>{if(P.conds.includes(c)){const m={kneepain:'무릎: 깊은 스쿼트 제한',shoulderpain:'어깨: 머리위 운동 제한',backpain:'허리: 전방 굴곡 제한',hypertension:'고혈압: 발살바 금지',osteoporosis:'골다공증: 고충격 제한'};P.exRec.push('⚠️ '+m[c])}});
+P.dietRec=[`일일 칼로리: ${P.cal} kcal`,`단백질: ${Math.round(P.wt*(P.age>=65?1.2:0.8))}-${Math.round(P.wt*(P.age>=65?1.5:1.0))}g/일`,`수분: ${(P.wt*0.033).toFixed(1)}L/일`];
+if(P.bmi>=25)P.dietRec.push('체중관리: 하루 300kcal 감소');if(P.conds.includes('diabetes'))P.dietRec.push('당뇨: 저GI 식품, 규칙적 식사');if(P.conds.includes('hypertension'))P.dietRec.push('고혈압: 나트륨 2g이하, DASH 식단');if(P.conds.includes('osteoporosis'))P.dietRec.push('골다공증: 칼슘 1200mg, 비타민D');if(P.conds.includes('sarcopenia'))P.dietRec.push('근감소증: 단백질 1.5g/kg');if(P.age>=65)P.dietRec.push('시니어: 비타민B12, 소량 빈번식사');
+
+// Weekly plan
+const freq=P.risk==='high'?3:P.risk==='moderate'?4:5;
+P.weekPlan=[];const aer=P.conds.includes('kneepain')?'수중 걷기/고정식 자전거':'빠르게 걷기/가벼운 조깅';const res=P.useBand?'밴드 저항운동':'맨몸 근력운동';
+const days=['월','화','수','목','금','토','일'];
+for(let i=0;i<7;i++){if(i<freq){if(i%2===0)P.weekPlan.push({day:days[i],tp:'유산소+근력',dt:aer+' 20-30분 + '+res+' 20분'});else P.weekPlan.push({day:days[i],tp:'유산소+유연성',dt:aer+' 30분 + 스트레칭 15분'})}else if(i===freq)P.weekPlan.push({day:days[i],tp:'가벼운 활동',dt:'산책 20분 + 스트레칭 15분'});else P.weekPlan.push({day:days[i],tp:'휴식',dt:'완전 휴식 또는 가벼운 산책'})}
+
+// Exercise prescription
+P.exRx=[];
+P.exRx.push({cat:'유산소 운동 (Aerobic)',freq:'주 '+(freq>=4?'3-5':'2-3')+'회',time:P.risk==='high'?'15-20분':'20-40분',int:P.risk==='high'?'저강도 (RPE 3-4)':P.risk==='moderate'?'저-중강도 (RPE 4-5)':'중강도 (RPE 5-6)',ex:P.conds.includes('kneepain')?'수중 걷기, 고정식 자전거, 상체 에르고미터':'빠르게 걷기, 자전거, 수영, 계단 오르기',nt:P.conds.includes('heart')?'운동 전후 5분 워밍업/쿨다운 필수':''});
+P.exRx.push({cat:'근력 운동 (Resistance)',freq:'주 2-3회 (비연속일)',time:'20-30분',int:P.risk==='high'?'1RM 40-50%, 12-15회×1-2세트':P.risk==='moderate'?'1RM 50-60%, 10-12회×2세트':'1RM 60-70%, 8-12회×2-3세트',ex:P.useBand?'밴드 컬, 프레스, 로우, 레이즈, 스쿼트':'스쿼트, 런지, 벽 푸시업, 플랭크, 카프레이즈',nt:P.conds.includes('hypertension')?'발살바 금지. 내쉬며 수축':''});
+P.exRx.push({cat:'유연성 운동 (Flexibility)',freq:'주 5-7회',time:'10-15분',int:'통증 없는 범위에서 당기는 느낌',ex:'목, 어깨, 햄스트링, 고관절, 종아리, 허리 스트레칭',nt:'각 동작 15-30초 유지, 2-4회 반복'});
+if(P.age>=60)P.exRx.push({cat:'균형 운동 (Balance)',freq:'주 3회 이상',time:'10-15분',int:'벽/의자 근처에서 안전하게',ex:'한발 서기, 탄뎀 서기, 힐투토 걷기, 체중 이동',nt:'낙상 예방 핵심. 눈 감으면 난이도 상승'});
+
+// Meal plan
+const protG=Math.round(P.wt*(P.age>=65?1.3:0.9)),carbG=Math.round(P.cal*0.5/4),fatG=Math.round(P.cal*0.25/9);
+P.macros={cal:P.cal,prot:protG,carb:carbG,fat:fatG};
+P.meals=[];
+P.meals.push({t:'아침 07:00',cal:Math.round(P.cal*0.3),mn:P.conds.includes('diabetes')?'현미밥 2/3공기 + 된장국 + 계란찜 + 시금치나물':'잡곡밥 1공기 + 미역국 + 계란프라이 + 김치 + 우유',tp:'아침 단백질로 근합성 촉진'});
+P.meals.push({t:'간식 10:00',cal:Math.round(P.cal*0.1),mn:P.age>=65?'고구마 1/2개 + 두유':'그릭요거트 + 견과류 + 바나나 1/2',tp:'운동 1시간 전 에너지 공급'});
+P.meals.push({t:'점심 12:00',cal:Math.round(P.cal*0.35),mn:P.conds.includes('hypertension')?'현미밥 + 닭가슴살 샐러드 + 두부조림 (저염)':'잡곡밥 + 생선구이 + 콩나물국 + 브로콜리',tp:'단백질+채소 충분히'});
+P.meals.push({t:'간식 15:00',cal:Math.round(P.cal*0.08),mn:P.conds.includes('sarcopenia')?'삶은 계란 2개 + 우유 (류신 풍부)':'사과 1개 + 치즈 1장',tp:'운동 후 30분 이내 단백질 섭취'});
+P.meals.push({t:'저녁 18:00',cal:Math.round(P.cal*0.25),mn:P.bmi>=25?'현미밥 1/2 + 두부스테이크 + 버섯볶음 + 샐러드':'잡곡밥 2/3 + 소고기 야채볶음 + 미소국 + 나물',tp:P.bmi>=25?'저녁 탄수화물 줄이기':'취침 3시간 전 마무리'});
+if(P.age>=65)P.meals.push({t:'야식 21:00',cal:Math.round(P.cal*0.05),mn:'따뜻한 우유 1잔 또는 바나나 1/2',tp:'카제인 단백질로 야간 근분해 방지'});
+P.supps=[];
+if(P.age>=65)P.supps.push({nm:'비타민D',ds:'800-1000 IU/일',rs:'골밀도, 근력, 면역'});
+if(P.conds.includes('osteoporosis'))P.supps.push({nm:'칼슘',ds:'1000-1200 mg/일',rs:'골밀도 유지'});
+if(P.age>=65)P.supps.push({nm:'비타민B12',ds:'500-1000 mcg/일',rs:'노화 흡수 감소 보충'});
+if(P.conds.includes('sarcopenia'))P.supps.push({nm:'유청단백질',ds:'20-25g 운동 후',rs:'류신 풍부, 근합성 촉진'});
+if(P.conds.includes('arthritis'))P.supps.push({nm:'오메가-3',ds:'1-2g EPA+DHA/일',rs:'항염증, 관절 건강'});
+
+// ─── RENDER EXTRA SECTIONS ───
+function renderExtra(){
+const el=document.getElementById('asCont');
+// Remove old button
+const oldBtn=el.querySelector('.btn-primary');
+if(oldBtn)oldBtn.parentNode.removeChild(oldBtn);
+// Remove trailing spacer
+const spacers=el.querySelectorAll('div[style*="height:24px"]');
+spacers.forEach(s=>s.remove());
+
+let h='';
+// Weekly plan
+h+='<div class="card"><div class="section-title">📅 주간 운동 계획</div>';
+P.weekPlan.forEach(d=>{h+='<div style="display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--bdr)"><div style="width:26px;font-weight:800;color:var(--acc)">'+d.day+'</div><div style="font-size:12px"><b>'+d.tp+'</b><div style="font-size:11px;color:#94a3b8">'+d.dt+'</div></div></div>'});
+h+='</div>';
+
+// Exercise prescription
+h+='<div class="card"><div class="section-title">🏋️ 장기 운동처방 (ACSM)</div>';
+P.exRx.forEach(p=>{h+='<div style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bdr)"><div style="font-size:13px;font-weight:800;color:var(--pri)">'+p.cat+'</div><div style="font-size:11px;color:#cbd5e1;margin-top:3px">빈도: '+p.freq+' · 시간: '+p.time+'</div><div style="font-size:11px;color:#cbd5e1">강도: '+p.int+'</div><div style="font-size:11px;color:#94a3b8">예시: '+p.ex+'</div>'+(p.nt?'<div style="font-size:10px;color:#F59E0B;margin-top:2px">⚠️ '+p.nt+'</div>':'')+'</div>'});
+h+='</div>';
+
+// Macros + Meal plan
+h+='<div class="card"><div class="section-title">🍽️ 일일 식단 ('+P.macros.cal+' kcal)</div>';
+h+='<div style="display:flex;gap:6px;margin-bottom:10px;text-align:center">';
+h+='<div style="flex:1;background:rgba(255,51,102,0.08);border-radius:8px;padding:6px"><div style="font-size:16px;font-weight:900;color:var(--pri)">'+P.macros.cal+'</div><div style="font-size:9px;color:#94a3b8">kcal</div></div>';
+h+='<div style="flex:1;background:rgba(6,214,160,0.08);border-radius:8px;padding:6px"><div style="font-size:16px;font-weight:900;color:var(--acc)">'+P.macros.prot+'g</div><div style="font-size:9px;color:#94a3b8">단백질</div></div>';
+h+='<div style="flex:1;background:rgba(124,58,237,0.08);border-radius:8px;padding:6px"><div style="font-size:16px;font-weight:900;color:var(--sec)">'+P.macros.carb+'g</div><div style="font-size:9px;color:#94a3b8">탄수화물</div></div>';
+h+='<div style="flex:1;background:rgba(245,158,11,0.08);border-radius:8px;padding:6px"><div style="font-size:16px;font-weight:900;color:#F59E0B">'+P.macros.fat+'g</div><div style="font-size:9px;color:#94a3b8">지방</div></div></div>';
+P.meals.forEach(m=>{h+='<div style="padding:8px;margin-bottom:6px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--bdr)"><div style="font-size:12px;font-weight:700">'+m.t+' <span style="color:var(--acc);font-size:10px">'+m.cal+'kcal</span></div><div style="font-size:11px;color:#cbd5e1;margin-top:2px">'+m.mn+'</div><div style="font-size:10px;color:#64748b">💡 '+m.tp+'</div></div>'});
+h+='</div>';
+
+// Supplements
+if(P.supps.length){
+h+='<div class="card"><div class="section-title">💊 보충제 권장</div>';
+P.supps.forEach(s=>{h+='<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--bdr)"><div style="min-width:70px;font-weight:700;font-size:12px;color:var(--acc)">'+s.nm+'</div><div style="font-size:11px;color:#cbd5e1">'+s.ds+'<br><span style="color:#94a3b8;font-size:10px">'+s.rs+'</span></div></div>'});
+h+='</div>';
+}
+
+h+='<button class="btn btn-primary" onclick="go(\x27progScreen\x27);renderProg()">다음: 운동 시작 →</button><div style="height:24px"></div>';
+el.insertAdjacentHTML('beforeend',h);
+}
+const bc=P.bmi<18.5?'저체중':P.bmi<23?'정상':P.bmi<25?'과체중':'비만';const cn={hypertension:'고혈압',diabetes:'당뇨병',heart:'심장질환',arthritis:'관절염',osteoporosis:'골다공증',backpain:'허리통증',kneepain:'무릎통증',shoulderpain:'어깨통증',respiratory:'호흡기질환',obesity:'비만',sarcopenia:'근감소증',normal:'정상'};
+document.getElementById('asCont').innerHTML=`<div class="card"><div class="section-title">📊 신체평가</div><div class="row"><div style="padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);text-align:center"><div style="font-size:11px;color:#64748b">BMI</div><div style="font-size:24px;font-weight:900;color:${P.bmi<23?'var(--acc)':'var(--pri)'}">${P.bmi}</div><div style="font-size:11px;color:#94a3b8">${bc}</div></div><div style="padding:10px;border-radius:10px;background:rgba(255,255,255,0.03);text-align:center"><div style="font-size:11px;color:#64748b">최대심박</div><div style="font-size:24px;font-weight:900;color:var(--acc)">${P.hrMax}</div><div style="font-size:11px;color:#94a3b8">bpm</div></div></div><div style="font-size:12px;color:#94a3b8;margin-top:8px">기저질환: ${P.conds.map(c=>cn[c]).join(', ')}</div></div><div class="card"><div class="section-title">⚡ ACSM 위험도</div><span class="risk-badge ${{low:'rl',moderate:'rm',high:'rh'}[P.risk]}">${{low:'저위험',moderate:'중위험',high:'고위험'}[P.risk]}</span></div><div class="card"><div class="section-title">💪 운동 권장</div>${P.exRec.map(r=>`<div style="font-size:13px;color:#cbd5e1;margin-bottom:5px">• ${r}</div>`).join('')}</div><div class="card"><div class="section-title">🎗️ 밴드 추천</div><div class="brec"><div class="bcirc" style="background:${P.bandHex}"></div><div><div style="font-weight:700">${P.bandName}</div><div style="font-size:12px;color:#94a3b8">${P.bandR} · ${P.bandD}</div></div></div></div><div class="card"><div class="section-title">🥗 식이 권장</div>${P.dietRec.map(r=>`<div style="font-size:13px;color:#cbd5e1;margin-bottom:5px">• ${r}</div>`).join('')}</div><button class="btn btn-primary" onclick="go('progScreen');renderProg()">다음: 프로그램 설정 →</button><div style="height:24px"></div>`;
+renderExtra();
+}
+
+/* ═══ EXERCISE DATABASE — ALL POSITION-BASED ═══ */
+/* detect: function(lm) returns {val, hit, rst}
+   val = display value, hit = true when rep should count, rst = true when ready for next
+   ALL work from FRONT camera using Y/X positions only */
+const EX={
+warmup:[{id:'march',kr:'제자리 걷기',en:'March',desc:'팔을 크게 흔들며 제자리 걷기',icon:'🚶',reps:12,color:'#F59E0B',cat:'warmup',band:false,avoid:[],
+  instr:['양팔을 크게 흔들어주세요','무릎을 높이 올려주세요','호흡은 자연스럽게'],caution:'',
+  bTarget:'hip',
+  detect(lm){const ly=lm[15].y,ry=lm[16].y,sy=(lm[11].y+lm[12].y)/2;const diff=Math.abs(ly-ry);const v=Math.round(diff*100);return{val:v,hit:diff>0.08,rst:diff<0.03}}}],
+upper_band:[
+{id:'curl',kr:'바이셉스 컬',en:'Biceps Curl',desc:'밴드를 밟고 팔꿈치를 굽혀 올리세요',icon:'💪',reps:10,color:'#FF3366',cat:'upper',band:true,avoid:[],
+  instr:['밴드 중앙을 양발로 밟기','양손으로 밴드 끝 잡기','팔꿈치 고정, 천천히 올리기','2초 올리고 3초 내리기'],caution:'팔꿈치 앞으로 나가지 않게',
+  bTarget:'shoulder',
+  detect(lm){const wy=(lm[15].y+lm[16].y)/2,ey=(lm[13].y+lm[14].y)/2;const v=Math.round((ey-wy)*100);return{val:v,hit:wy<ey+0.02,rst:wy>ey+0.12}}},
+{id:'press',kr:'숄더 프레스',en:'Shoulder Press',desc:'밴드를 어깨에서 머리 위로 밀기',icon:'🏋️',reps:10,color:'#F59E0B',cat:'upper',band:true,avoid:['shoulderpain'],
+  instr:['밴드를 양발로 밟기','양손을 어깨 높이에 올리기','머리 위로 천천히 밀기','완전히 편 후 내리기'],caution:'허리 과신전 주의',
+  bTarget:'aboveHead',
+  detect(lm){const wy=(lm[15].y+lm[16].y)/2,ny=lm[0].y;const v=Math.round((ny-wy)*100);return{val:v,hit:wy<ny,rst:wy>ny+0.15}}},
+{id:'lat_raise',kr:'래터럴 레이즈',en:'Lateral Raise',desc:'밴드를 잡고 양팔을 옆으로 들기',icon:'🦅',reps:10,color:'#7C3AED',cat:'upper',band:true,avoid:['shoulderpain'],
+  instr:['밴드를 양발로 밟기','양팔을 몸 옆에 두기','어깨 높이까지 옆으로 올리기','천천히 내리기'],caution:'어깨가 귀쪽으로 올라가지 않게',
+  bTarget:'aboveHead',
+  detect(lm){const wx=Math.abs(lm[15].x-lm[16].x),sx=Math.abs(lm[11].x-lm[12].x);const ratio=wx/Math.max(sx,0.01);const v=Math.round(ratio*30);return{val:v,hit:ratio>3.0,rst:ratio<1.5}}},
+{id:'front_raise',kr:'프론트 레이즈',en:'Front Raise',desc:'밴드를 잡고 양팔을 앞으로 들기',icon:'🙌',reps:10,color:'#0EA5E9',cat:'upper',band:true,avoid:['shoulderpain'],
+  instr:['밴드를 양발로 밟기','팔을 몸 앞에 두기','어깨 높이까지 앞으로 올리기','천천히 내리기'],caution:'상체 뒤로 젖히지 않기',
+  bTarget:'aboveHead',
+  detect(lm){const wy=(lm[15].y+lm[16].y)/2,sy=(lm[11].y+lm[12].y)/2;const v=Math.round((sy-wy)*100);return{val:v,hit:wy<sy+0.02,rst:wy>sy+0.15}}},
+{id:'pull_apart',kr:'풀어파트',en:'Pull-Apart',desc:'밴드를 앞에서 잡고 좌우로 벌리기',icon:'🤸',reps:10,color:'#06D6A0',cat:'upper',band:true,avoid:[],
+  instr:['밴드를 어깨 너비로 잡기','팔을 앞으로 뻗기','가슴을 열며 양팔 벌리기','견갑골 모으는 느낌'],caution:'',
+  bTarget:'hands',
+  detect(lm){const wx=Math.abs(lm[15].x-lm[16].x),sx=Math.abs(lm[11].x-lm[12].x);const r=wx/Math.max(sx,0.01);const v=Math.round(r*30);return{val:v,hit:r>3.5,rst:r<1.8}}},
+{id:'band_row',kr:'밴드 로우',en:'Band Row',desc:'밴드를 앞에서 잡고 가슴쪽으로 당기기',icon:'🚣',reps:10,color:'#EC4899',cat:'upper',band:true,avoid:[],
+  instr:['밴드를 앞에서 양손으로 잡기','팔을 앞으로 뻗은 상태에서 시작','팔꿈치를 뒤로 당기며 가슴쪽으로','견갑골을 모아주세요'],caution:'어깨를 으쓱하지 않기',
+  bTarget:'shoulder',
+  detect(lm){const wy=(lm[15].y+lm[16].y)/2,ey=(lm[13].y+lm[14].y)/2;const wx=Math.abs(lm[15].x-lm[16].x),sx=Math.abs(lm[11].x-lm[12].x);const r=wx/Math.max(sx,0.01);const v=Math.round(r*30);return{val:v,hit:r<1.2,rst:r>2.2}}},
+{id:'band_twist',kr:'밴드 트위스트',en:'Band Twist',desc:'밴드를 잡고 상체를 좌우로 돌리기',icon:'🔄',reps:12,color:'#F97316',cat:'upper',band:true,avoid:['backpain'],
+  instr:['밴드를 양손으로 잡고 앞으로 뻗기','양발은 어깨 너비로 고정','상체를 오른쪽으로 돌리기','다시 돌아와 왼쪽으로 돌리기'],caution:'허리가 아닌 흉추를 회전',
+  bTarget:'hands',
+  detect(lm){const sx=(lm[11].x+lm[12].x)/2,hx=(lm[23].x+lm[24].x)/2;const off=Math.abs(sx-hx);const v=Math.round(off*200);return{val:v,hit:off>0.04,rst:off<0.015}}}
+],
+upper_no:[
+{id:'arm_up',kr:'만세 운동',en:'Arms Up & Down',desc:'양팔을 머리 위로 올렸다 내리기',icon:'🙆',reps:10,color:'#A78BFA',cat:'upper',band:false,avoid:['shoulderpain'],
+  instr:['양팔을 몸 옆에 두기','숨 들이마시며 머리 위로 올리기','손바닥 마주보게','숨 내쉬며 천천히 내리기'],caution:'',
+  bTarget:'aboveHead',
+  detect(lm){const wy=(lm[15].y+lm[16].y)/2,ny=lm[0].y;const v=Math.round((ny-wy)*100);return{val:v,hit:wy<ny-0.02,rst:wy>ny+0.18}}},
+{id:'shld_tap',kr:'어깨 터치',en:'Shoulder Taps',desc:'양손 번갈아 반대쪽 어깨 터치',icon:'👋',reps:12,color:'#F472B6',cat:'upper',band:false,avoid:[],
+  instr:['양발 어깨너비로 벌리기','오른손→왼어깨 터치','왼손→오른어깨 터치','리듬감 있게'],caution:'',
+  bTarget:'shoulder',
+  detect(lm){const lw=lm[15],rs=lm[12],rw=lm[16],ls=lm[11];const ld=Math.hypot(lw.x-rs.x,lw.y-rs.y),rd=Math.hypot(rw.x-ls.x,rw.y-ls.y);const close=Math.min(ld,rd);const v=Math.round((1-close)*100);return{val:v,hit:close<0.06,rst:close>0.15}}},
+{id:'side_bend',kr:'옆구리 스트레칭',en:'Side Bends',desc:'한 팔을 올리고 옆으로 기울이기',icon:'🧘',reps:10,color:'#38BDF8',cat:'upper',band:false,avoid:[],
+  instr:['한 팔을 머리 위로 올리기','반대쪽으로 상체 기울이기','5초 유지','좌우 번갈아'],caution:'',
+  bTarget:'aboveHead',
+  detect(lm){const sx=(lm[11].x+lm[12].x)/2,nx=lm[0].x;const off=Math.abs(nx-sx);const v=Math.round(off*200);return{val:v,hit:off>0.04,rst:off<0.02}}},
+{id:'wall_push',kr:'벽 푸시업',en:'Wall Push-Up',desc:'벽에 손 대고 팔굽혀펴기',icon:'🧱',reps:10,color:'#FB923C',cat:'upper',band:false,avoid:['shoulderpain'],
+  instr:['벽에서 팔 길이만큼 서기','양손 어깨너비로 벽에 대기','팔꿈치 굽혀 상체 기울이기','다시 밀어 돌아오기'],caution:'복부에 힘 주기',
+  bTarget:'shoulder',
+  detect(lm){const ny=lm[0].y,sy=(lm[11].y+lm[12].y)/2;const gap=sy-ny;const v=Math.round(gap*200);return{val:v,hit:gap<0.12,rst:gap>0.18}}},
+{id:'trunk_rot',kr:'상체 회전',en:'Trunk Rotation',desc:'양팔을 벌리고 상체를 좌우로 돌리기',icon:'🌀',reps:12,color:'#14B8A6',cat:'upper',band:false,avoid:['backpain'],
+  instr:['양팔을 어깨 높이로 벌리기','양발은 어깨 너비로 고정','상체를 오른쪽으로 돌리기','돌아와서 왼쪽으로 돌리기'],caution:'골반은 정면 유지',
+  bTarget:'hands',
+  detect(lm){const sx=(lm[11].x+lm[12].x)/2,hx=(lm[23].x+lm[24].x)/2;const off=Math.abs(sx-hx);const v=Math.round(off*200);return{val:v,hit:off>0.035,rst:off<0.012}}},
+{id:'high_knee_tap',kr:'무릎 터치',en:'Standing Knee Tap',desc:'손으로 반대쪽 올린 무릎 터치',icon:'🦵',reps:12,color:'#8B5CF6',cat:'upper',band:false,avoid:['kneepain'],
+  instr:['똑바로 서기','오른 무릎을 올리며 왼손으로 터치','왼 무릎을 올리며 오른손으로 터치','리듬감 있게 번갈아'],caution:'균형 잡기 어려우면 벽 잡기',
+  bTarget:'hip',
+  detect(lm){const lw=lm[15],rk=lm[26],rw=lm[16],lk=lm[25];const ld=Math.hypot(lw.x-rk.x,lw.y-rk.y),rd=Math.hypot(rw.x-lk.x,rw.y-lk.y);const close=Math.min(ld,rd);const v=Math.round((1-close)*100);return{val:v,hit:close<0.08,rst:close>0.20}}}
+],
+lower:[
+{id:'squat',kr:'스쿼트',en:'Squat',desc:'엉덩이를 뒤로 빼며 앉기',icon:'🦵',reps:10,color:'#FF3366',cat:'lower',band:false,avoid:[],
+  instr:['양발 어깨너비로 벌리기','손을 앞으로 뻗기','엉덩이 뒤로 빼며 앉기','허벅지 수평에서 일어나기'],caution:'무릎이 안쪽으로 모이지 않게',
+  bTarget:'hip',
+  detect(lm){const hy=(lm[23].y+lm[24].y)/2,ay=(lm[27].y+lm[28].y)/2;const ratio=hy/Math.max(ay,0.01);const v=Math.round(ratio*100);return{val:v,hit:ratio>0.78,rst:ratio<0.70}}},
+{id:'chair_sq',kr:'의자 스쿼트',en:'Chair Squat',desc:'의자에 살짝 앉았다 일어나기',icon:'🪑',reps:10,color:'#F59E0B',cat:'lower',band:false,avoid:[],
+  instr:['의자 앞에 서기','양손 앞으로 뻗기','엉덩이 살짝 닿을때까지','바로 일어나기'],caution:'완전히 앉지 않기',
+  bTarget:'hip',
+  detect(lm){const hy=(lm[23].y+lm[24].y)/2,ay=(lm[27].y+lm[28].y)/2;const ratio=hy/Math.max(ay,0.01);const v=Math.round(ratio*100);return{val:v,hit:ratio>0.77,rst:ratio<0.68}}},
+{id:'calf',kr:'까치발 들기',en:'Calf Raises',desc:'까치발로 올라갔다 내리기',icon:'🦶',reps:12,color:'#06D6A0',cat:'lower',band:false,avoid:[],
+  instr:['양발 어깨너비로 벌리기','벽이나 의자 잡고 균형','천천히 까치발로 올라가기','2초 유지 후 내리기'],caution:'',
+  bTarget:'hip',
+  detect(lm){const sy=(lm[11].y+lm[12].y)/2;const v=Math.round(sy*1000);return{val:v,hit:sy<P._calBase-0.012,rst:sy>P._calBase-0.003}}},
+{id:'lunge_touch',kr:'런지 터치',en:'Lunge Touch',desc:'한발 앞으로 내딛으며 앉기',icon:'🏃',reps:8,color:'#E11D48',cat:'lower',band:false,avoid:['kneepain'],
+  instr:['똑바로 서기','한발을 앞으로 넓게 내딛기','양 무릎을 굽혀 내려가기','밀어 올라와 제자리로'],caution:'앞무릎이 발끝 넘지 않게',
+  bTarget:'hip',
+  detect(lm){const hy=(lm[23].y+lm[24].y)/2,ay=(lm[27].y+lm[28].y)/2;const r=hy/Math.max(ay,0.01);const v=Math.round(r*100);return{val:v,hit:r>0.76,rst:r<0.68}}},
+{id:'hip_circle',kr:'골반 돌리기',en:'Hip Circles',desc:'양손을 허리에 대고 골반을 돌리기',icon:'⭕',reps:10,color:'#D946EF',cat:'lower',band:false,avoid:[],
+  instr:['양발 어깨너비로 벌리기','양손을 허리에 대기','골반으로 큰 원을 그리기','시계방향 5회, 반시계 5회'],caution:'',
+  bTarget:'hip',
+  detect(lm){const hx=(lm[23].x+lm[24].x)/2,sx=(lm[11].x+lm[12].x)/2;const off=Math.abs(hx-sx);const v=Math.round(off*200);return{val:v,hit:off>0.03,rst:off<0.01}}}
+]};
+
+/* ═══ PROGRAM ═══ */
+window.renderProg=function(){document.getElementById('pgCont').innerHTML=`<div class="card"><div class="section-title">⏱️ 운동 시간</div><div class="dgrid">${[5,10,15,20,30].map(d=>`<button class="dbtn ${d===P.dur?'sel':''}" onclick="pDur(${d},this)">${d}분<small>${d<=5?'간단히':d<=10?'기본':d<=20?'표준':'풀코스'}</small></button>`).join('')}</div></div><div class="card"><div class="section-title">🎗️ 운동 유형</div><div class="tgrid"><button class="tbtn ${P.useBand?'sel':''}" onclick="pType(1,this)"><div class="ti">🎗️</div><div class="tn">밴드 사용</div><div class="td">추천: ${P.bandName}</div></button><button class="tbtn ${!P.useBand?'sel':''}" onclick="pType(0,this)"><div class="ti">🤸</div><div class="tn">맨몸</div><div class="td">도구 없이</div></button></div></div><button class="btn btn-primary" onclick="buildProg()">다음: 미리보기 →</button><div style="height:24px"></div>`};
+window.pDur=function(d,el){P.dur=d;document.querySelectorAll('.dbtn').forEach(b=>b.classList.remove('sel'));el.classList.add('sel')};
+window.pType=function(b,el){P.useBand=!!b;document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('sel'));el.classList.add('sel')};
+
+window.buildProg=function(){
+const up=P.useBand?EX.upper_band:EX.upper_no;
+const uf=up.filter(e=>!e.avoid.some(a=>P.conds.includes(a)));
+let lo=EX.lower.filter(e=>!e.avoid.some(a=>P.conds.includes(a)));
+if(P.conds.includes('kneepain')){lo=lo.filter(e=>e.id!=='squat')}
+const tc=Math.max(2,Math.round(P.dur/2));
+const pg=[...EX.warmup];
+const us=Math.ceil((tc-1)*0.6),ls=tc-1-us;
+for(let i=0;i<us&&i<uf.length;i++)pg.push(uf[i]);
+for(let i=0;i<ls&&i<lo.length;i++)pg.push(lo[i]);
+if(P.risk==='high')pg.forEach(e=>{e.reps=Math.max(6,e.reps-3)});
+P.prog=pg;renderInstr();go('instrScreen');
+};
+
+function renderInstr(){const cl={warmup:'🔥 워밍업',upper:'💪 상체',lower:'🦵 하체'};
+let h=`<div class="card" style="text-align:center;padding:16px"><div style="font-size:13px;color:#64748b">총 ${P.prog.length}종 · 약 ${P.dur}분</div><div style="font-size:14px;font-weight:700;margin-top:4px;color:var(--acc)">${P.useBand?'밴드: '+P.bandName:'맨몸 운동'}</div></div>`;
+P.prog.forEach((ex,i)=>{h+=`<div class="ep" onclick="document.getElementById('d${i}').style.display=document.getElementById('d${i}').style.display==='none'?'block':'none'"><div class="ei">${ex.icon}</div><div style="flex:1"><div style="font-size:14px;font-weight:700">${ex.kr} <span style="font-size:11px;color:#64748b">${ex.en}</span></div><div style="font-size:11px;color:#94a3b8;margin-top:2px">${ex.desc}</div><div style="font-size:11px;color:var(--acc);margin-top:2px">${cl[ex.cat]} · ${ex.reps}회${ex.band?' · 밴드':''}</div></div></div><div id="d${i}" class="card" style="display:none;margin-top:-8px"><div style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:8px">📋 수행 방법</div>${ex.instr.map((s,j)=>`<div class="istep"><div class="istep-n">${j+1}</div><div style="font-size:13px;color:#cbd5e1;line-height:1.5">${s}</div></div>`).join('')}${ex.caution?`<div class="icaut">⚠️ ${ex.caution}</div>`:''}</div>`});
+h+=`<button class="btn btn-primary" onclick="startWk()">🎈 운동 시작!</button><div style="height:24px"></div>`;
+document.getElementById('inCont').innerHTML=h}
+
+/* ═══ POSE ═══ */
+async function initPose(){const v=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm");pose=await PoseLandmarker.createFromOptions(v,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",delegate:"GPU"},runningMode:"VIDEO",numPoses:1})}
+async function startCam(){const v=document.getElementById('vid');v.srcObject=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}}});await new Promise(r=>v.onloadedmetadata=r);await v.play();document.getElementById('pc').width=v.videoWidth;document.getElementById('pc').height=v.videoHeight;document.getElementById('fc').width=v.videoWidth;document.getElementById('fc').height=v.videoHeight}
+
+/* ═══ BALLOON ═══ */
+function getBP(lm,t,w,h){switch(t){case'shoulder':return{x:((lm[11].x+lm[12].x)/2)*w,y:((lm[11].y+lm[12].y)/2)*h-55};case'aboveHead':return{x:((lm[11].x+lm[12].x)/2)*w,y:Math.max(35,Math.min(lm[11].y,lm[12].y)*h-85)};case'hands':return{x:((lm[15].x+lm[16].x)/2)*w,y:Math.max(35,((lm[15].y+lm[16].y)/2)*h-35)};case'hip':return{x:((lm[23].x+lm[24].x)/2)*w,y:((lm[23].y+lm[24].y)/2)*h};default:return{x:w/2,y:h*0.3}}}
+function mkBall(){balloons=[];const ex=P.exList[P.exI];if(!ex)return;const cv=document.getElementById('pc');const sz=58+Math.random()*16;balloons.push({x:(cv.width||640)/2,y:(cv.height||480)*(ex.bTarget==='hip'?0.6:0.25),c:ex.color,s:sz,_origS:sz,bp:Math.random()*6.28,bs:2+Math.random()*2,alive:true,sc:0})}
+function popBalls(){sndPop();balloons.forEach(b=>{if(!b.alive)return;b.alive=false;for(let i=0;i<40;i++){const a=(6.28/40)*i,sp=3+Math.random()*10;particles.push({x:b.x,y:b.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-4,s:3+Math.random()*8,c:b.c,l:1,d:0.015+Math.random()*0.02,g:0.15,ic:0})}for(let i=0;i<20;i++)particles.push({x:b.x+(Math.random()-0.5)*60,y:b.y+(Math.random()-0.5)*60,vx:(Math.random()-0.5)*8,vy:-Math.random()*10-3,s:5+Math.random()*6,c:['#FFD700','#FF6B9D','#06D6A0','#38BDF8','#A78BFA','#FF3366'][~~(Math.random()*6)],l:1,d:0.01+Math.random()*0.015,g:0.12,ic:1,r:Math.random()*360,rs:(Math.random()-0.5)*20})})}
+function li(h,a){let r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return`rgb(${Math.min(255,r+a)},${Math.min(255,g+a)},${Math.min(255,b+a)})`}
+function dk(h,a){let r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return`rgb(${Math.max(0,r-a)},${Math.max(0,g-a)},${Math.max(0,b-a)})`}
+function drB(ctx,b,t){if(!b.alive)return;b.sc=Math.min(1,b.sc+0.06);const by=Math.sin(t*b.bs+b.bp)*6,x=b.x,y=b.y+by,s=b.s*b.sc;ctx.save();ctx.translate(x,y);ctx.beginPath();ctx.moveTo(0,s*0.7);ctx.quadraticCurveTo(4,s*0.7+20,-2,s*0.7+40);ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;ctx.stroke();ctx.beginPath();ctx.ellipse(0,0,s*0.6,s*0.78,0,0,Math.PI*2);const gr=ctx.createRadialGradient(-s*0.1,-s*0.15,s*0.08,0,0,s*0.78);gr.addColorStop(0,li(b.c,60));gr.addColorStop(0.5,b.c);gr.addColorStop(1,dk(b.c,30));ctx.fillStyle=gr;ctx.fill();ctx.beginPath();ctx.ellipse(-s*0.15,-s*0.28,s*0.14,s*0.22,-0.4,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.32)';ctx.fill();ctx.restore()}
+function drP(ctx){for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=p.g;p.l-=p.d;if(p.l<=0){particles.splice(i,1);continue}ctx.save();ctx.globalAlpha=p.l;ctx.translate(p.x,p.y);if(p.ic){p.r+=p.rs;ctx.rotate(p.r*Math.PI/180);ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2)}else{ctx.beginPath();ctx.arc(0,0,p.s*p.l,0,Math.PI*2);ctx.fillStyle=p.c;ctx.fill()}ctx.restore()}}
+
+function showFB(t){const el=document.getElementById('fbt');el.className='fbt';el.textContent=t;void el.offsetWidth;el.classList.add('show')}
+function upDots(t,d){const c=document.getElementById('cdots');c.innerHTML='';for(let i=0;i<t;i++){const e=document.createElement('div');e.className='cdot'+(i<d?' dn':(i===d?' cu':''));if(i<d)e.textContent='✓';c.appendChild(e)}}
+function upProg(){const t=P.exList.reduce((s,e)=>s+e.reps,0);let d=0;for(let i=0;i<P.exI;i++)d+=P.exList[i].reps;d+=P.rep;document.getElementById('cpf').style.width=(d/t*100)+'%';document.getElementById('cp').textContent=`${P.exI+1}/${P.exList.length}`}
+
+/* ═══ REP DETECTION — 4-STATE MACHINE ═══ */
+/* WAIT → REST → MOVE → POP → (cooldown) → REST → MOVE → POP → ... 
+   WAIT: 운동 시작 직후, 반드시 REST 자세를 먼저 확인
+   REST: 원위치 확인됨, 동작 시작 가능
+   MOVE: 동작 구간 진입, 홀드 카운트 중
+   POP:  터짐! 쿨다운 후 다시 REST 대기 */
+let repState='WAIT',holdCt=0;
+const HOLD_FRAMES=5;  // 8프레임 연속 유지 필요
+const REST_FRAMES=3;  // 원위치도 5프레임 확인
+let restCt=0;
+let repCD_timer=null;
+
+function checkRep(lm){
+  if(!P.on)return;
+  const ex=P.exList[P.exI];if(!ex||!ex.detect)return;
+  const r=ex.detect(lm);if(!r)return;
+  const si=document.getElementById('csi'),st=document.getElementById('cstxt');
+
+  switch(repState){
+    case 'WAIT':
+      // 운동 시작 직후: 반드시 REST 자세를 먼저 취해야 함
+      si.textContent='🔵';
+      if(r.rst){
+        restCt++;
+        st.textContent=`자세 확인 ${restCt}/${REST_FRAMES}`;
+        if(restCt>=REST_FRAMES){
+          restCt=0;repState='REST';mkBall();
+          si.textContent='🎈';st.textContent='동작하세요!';
+        }
+      }else{
+        restCt=Math.max(0,restCt-1);
+        st.textContent='원위치로 서세요';
+      }
+      break;
+
+    case 'REST':
+      // 원위치 확인됨, 동작 시작 감지
+      si.textContent='🎈';st.textContent='동작하세요!';
+      if(r.hit){
+        holdCt++;
+        if(holdCt>=2){repState='MOVE';holdCt=2;} // 2프레임 진입하면 MOVE로
+      }else{holdCt=0}
+      break;
+
+    case 'MOVE':
+      // 동작 중, 홀드 카운팅
+      if(r.hit){
+        holdCt++;
+        const pct=Math.min(100,Math.round(holdCt/HOLD_FRAMES*100));
+        si.textContent='💥';
+        st.textContent=`유지! ${pct}%`;
+        // 풍선 흔들림 효과
+        balloons.forEach(b=>{if(b.alive)b.s=b._origS*(1+pct/500)});
+        if(holdCt>=HOLD_FRAMES){
+          repState='POP';holdCt=0;trigPop();
+        }
+      }else{
+        holdCt=Math.max(0,holdCt-2); // 빠지면 빠르게 감소
+        if(holdCt<=0){repState='REST'} // 완전히 빠지면 REST로
+        si.textContent='🎈';st.textContent='더 올리세요!';
+      }
+      break;
+
+    case 'POP':
+      // 터짐! 쿨다운 중 (trigPop에서 타이머로 REST 전환)
+      si.textContent='✅';st.textContent='잘했어요!';
+      break;
+  }
+}
+
+function trigPop(){
+  popBalls();P.rep++;P.pops++;
+  const rn=document.getElementById('crn');rn.textContent=P.rep;rn.style.transform='scale(1.5)';rn.style.color='#FF3366';setTimeout(()=>{rn.style.transform='scale(1)';rn.style.color='#fff'},400);
+  upDots(P.exList[P.exI].reps,P.rep);upProg();
+  const m=P.exList[P.exI].reps;let msg;
+  if(P.rep===m)msg='🎉 완벽!';else if(P.rep===m-1)msg='🎯 마지막!';else if(P.rep===Math.ceil(m/2))msg='🏆 절반!';
+  else msg=['펑! 💥','팡! 🎈','터졌다! 💣','좋아요! 👏','파워! 💪','대단해! 🔥','최고! ⭐','짱! 🏅'][~~(Math.random()*8)];
+  showFB(msg);
+  if(P.rep>=m){
+    P.on=false; // 즉시 감지 중단
+    setTimeout(()=>nextEx(),3000);
+  }else{
+    // 2.5초 쿨다운 후 REST로 전환 (이 동안 아무것도 안 잡힘)
+    P.on=false;
+    setTimeout(()=>{
+      repState='WAIT';restCt=0;holdCt=0;P.on=true;
+    },1200);
+  }
+}
+
+function nextEx(){P.exI++;if(P.exI>=P.exList.length){finish();return}showTr()}
+function showTr(){P.on=false;const s=document.getElementById('trScr'),ex=P.exList[P.exI];document.getElementById('trs').textContent=`${P.exI+1}/${P.exList.length}`;document.getElementById('tri').textContent=ex.icon;document.getElementById('trn').textContent=ex.kr;document.getElementById('trd').textContent=ex.desc;document.getElementById('trr').textContent=`${ex.reps}회`;s.classList.add('on');let c=5;document.getElementById('trc').textContent=c;sndTick();const iv=setInterval(()=>{c--;if(c<=0){clearInterval(iv);s.classList.remove('on');beginEx()}else{document.getElementById('trc').textContent=c;if(c<=3)sndTick()}},1000)}
+
+function beginEx(){
+  const ex=P.exList[P.exI];P.rep=0;P.phase='down';holdCt=0;balloons=[];particles=[];
+  document.getElementById('cn').textContent=`${ex.icon} ${ex.kr}`;document.getElementById('cd').textContent=ex.desc;
+  document.getElementById('crn').textContent='0';document.getElementById('crm').textContent=ex.reps;
+  upDots(ex.reps,0);upProg();
+  document.getElementById('cst').style.display='block';document.getElementById('csi').textContent='⏳';document.getElementById('cstxt').textContent='준비...';
+  // Calibration for calf raise
+  P._calBase=0.5;
+  showFB('준비! 🏁');
+  P.on=false;repState='WAIT';holdCt=0;restCt=0;
+  setTimeout(()=>{
+    if(latestLM){P._calBase=(latestLM[11].y+latestLM[12].y)/2}
+    P.on=true;
+    showFB('원위치! 🧍');
+    document.getElementById('csi').textContent='🔵';
+    document.getElementById('cstxt').textContent='원위치로 서세요';
+  },3000);
+}
+
+function finish(){P.on=false;if(tmr)clearInterval(tmr);sndWin();const el=Math.floor((Date.now()-P.t0)/1000),mm=Math.floor(el/60),ss=el%60;if(anim)cancelAnimationFrame(anim);anim=null;const v=document.getElementById('vid');if(v.srcObject){v.srcObject.getTracks().forEach(t=>t.stop());v.srcObject=null}document.getElementById('camScreen').classList.remove('active');document.getElementById('compScreen').classList.add('active');document.getElementById('csub').textContent=`${P.prog.length}종 운동 ${mm}분 ${ss}초 완료!`;document.getElementById('cstats').innerHTML=`<div class="sc"><div class="sn">${P.pops}</div><div class="sl">🎈 풍선</div></div><div class="sc"><div class="sn">${P.exList.length}</div><div class="sl">✅ 운동</div></div><div class="sc"><div class="sn">${mm}:${String(ss).padStart(2,'0')}</div><div class="sl">⏱ 시간</div></div>`}
+window.exitEx=function(){P.on=false;if(anim)cancelAnimationFrame(anim);anim=null;if(tmr)clearInterval(tmr);const v=document.getElementById('vid');if(v.srcObject){v.srcObject.getTracks().forEach(t=>t.stop());v.srcObject=null}document.getElementById('camScreen').classList.remove('active');go('instrScreen')};
+
+/* ═══ RENDER LOOP ═══ */
+let latestLM=null;
+function loop(){const v=document.getElementById('vid'),pc=document.getElementById('pc'),ctx=pc.getContext('2d'),fc=document.getElementById('fc'),fctx=fc.getContext('2d');
+if(v.readyState>=2&&v.currentTime!==lvt&&pose){lvt=v.currentTime;const res=pose.detectForVideo(v,performance.now());ctx.clearRect(0,0,pc.width,pc.height);
+if(res.landmarks&&res.landmarks.length>0){latestLM=res.landmarks[0];const du=new DrawingUtils(ctx);du.drawConnectors(latestLM,PoseLandmarker.POSE_CONNECTIONS,{color:'rgba(255,255,255,0.2)',lineWidth:2});du.drawLandmarks(latestLM,{color:'rgba(6,214,160,0.6)',radius:3});
+if(P.on&&P.exI<P.exList.length){checkRep(latestLM);const ex=P.exList[P.exI];const pos=getBP(latestLM,ex.bTarget,pc.width,pc.height);balloons.forEach(b=>{if(b.alive){b.x+=(pos.x-b.x)*0.12;b.y+=(pos.y-b.y)*0.12}})}}}
+fctx.clearRect(0,0,fc.width,fc.height);const t=performance.now()/1000;fctx.save();fctx.translate(fc.width,0);fctx.scale(-1,1);balloons.forEach(b=>drB(fctx,b,t));drP(fctx);fctx.restore();anim=requestAnimationFrame(loop)}
+
+/* ═══ START ═══ */
+window.startWk=async function(){P.exList=[...P.prog];P.exI=0;P.rep=0;P.pops=0;P.phase='down';holdCt=0;balloons=[];particles=[];P.t0=Date.now();go('camScreen');try{if(!pose)await initPose();await startCam()}catch(e){alert('카메라 필요\n'+e.message);go('instrScreen');return}const st=Date.now();tmr=setInterval(()=>{const e=Math.floor((Date.now()-st)/1000);document.getElementById('ctm').textContent=`⏱ ${Math.floor(e/60)}:${String(e%60).padStart(2,'0')}`},1000);loop();showTr()};
+
+/* ═══ PDF ═══ */
+window.makePDF=function(){
+const CN={hypertension:'고혈압',diabetes:'당뇨병',heart:'심장질환',arthritis:'관절염',osteoporosis:'골다공증',backpain:'허리통증',kneepain:'무릎통증',shoulderpain:'어깨통증',respiratory:'호흡기질환',obesity:'비만',sarcopenia:'근감소증',normal:'정상'};
+const bmiCat=P.bmi<18.5?'저체중':P.bmi<23?'정상':P.bmi<25?'과체중':P.bmi<30?'비만':'고도비만';
+const riskKr={low:'저위험 (Low Risk)',moderate:'중위험 (Moderate Risk)',high:'고위험 (High Risk)'};
+const riskDesc={low:'위험인자 2개 미만, 무증상. 일반적인 운동 참여 가능.',moderate:'위험인자 2개 이상. 중강도 이하 운동을 권장하며 모니터링 필요.',high:'심혈관 또는 호흡기 질환 보유. 의학적 클리어런스 하에 저강도 운동부터 시작.'};
+const riskColor={low:'#06D6A0',moderate:'#F59E0B',high:'#FF3366'};
+const catKr={warmup:'워밍업',upper:'상체',lower:'하체'};
+const el=P.t0?Math.floor((Date.now()-P.t0)/1000):0;
+const mm=Math.floor(el/60),ss=el%60;
+const dateStr=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});
+const S=function(t,c){return'<div style="font-size:15px;font-weight:800;color:#FF3366;margin-bottom:12px;border-bottom:2px solid #FF3366;padding-bottom:6px">'+t+'</div>'};
+const B='<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-bottom:16px">';
+
+var h='<div style="font-family:Noto Sans KR,sans-serif;color:#1e293b;line-height:1.6;max-width:700px;margin:0 auto">';
+
+// HEADER
+h+='<div style="background:linear-gradient(135deg,#FF3366,#7C3AED);padding:28px 24px;color:#fff;border-radius:0 0 12px 12px">';
+h+='<div style="font-size:24px;font-weight:900">운동처방 보고서</div>';
+h+='<div style="font-size:13px;opacity:0.9;margin-top:4px">ACSM 기반 개인 맞춤형 운동 및 영양 처방</div>';
+h+='<div style="font-size:11px;opacity:0.7;margin-top:8px">'+dateStr+' | AI Sports Tech Research Center · 광주보건대학교</div></div>';
+h+='<div style="padding:20px 24px">';
+
+// 1. PROFILE
+h+=B+S('1. 대상자 정보');
+h+='<table style="width:100%;font-size:13px;border-collapse:collapse">';
+var rows=[['연령',P.age+'세'],['성별',P.sex==='m'?'남성':'여성'],['신장 / 체중',P.ht+' cm / '+P.wt+' kg'],['BMI','<strong style="color:'+(P.bmi<23?'#06D6A0':P.bmi<25?'#F59E0B':'#FF3366')+'">'+P.bmi+'</strong> kg/m² ('+bmiCat+')'],['최대 심박수',P.hrMax+' bpm (220 - 연령)'],['목표 심박수',P.hrZ[0]+' ~ '+P.hrZ[1]+' bpm'],['기저질환',P.conds.map(function(x){return CN[x]||x}).join(', ')]];
+rows.forEach(function(r){h+='<tr><td style="padding:4px 0;font-weight:700;width:120px;color:#64748b">'+r[0]+'</td><td>'+r[1]+'</td></tr>'});
+h+='</table></div>';
+
+// 2. ACSM RISK
+h+=B+S('2. ACSM 위험도 분류');
+h+='<div style="display:inline-block;padding:6px 16px;border-radius:20px;font-weight:800;font-size:14px;color:#fff;background:'+riskColor[P.risk]+'">'+riskKr[P.risk]+'</div>';
+h+='<div style="margin-top:10px;font-size:12px;color:#475569">'+riskDesc[P.risk]+'</div>';
+h+='<div style="margin-top:12px;font-size:13px;font-weight:700">운동 권장사항</div><ul style="margin:6px 0;padding-left:18px;font-size:12px;color:#334155">';
+P.exRec.forEach(function(r){h+='<li style="margin-bottom:3px">'+r+'</li>'});
+h+='</ul></div>';
+
+// 3. BAND
+h+=B+S('3. 저항 밴드 추천');
+h+='<div style="display:flex;align-items:center;gap:14px"><div style="width:44px;height:44px;border-radius:50%;background:'+P.bandHex+';flex-shrink:0"></div><div><div style="font-weight:800;font-size:14px">'+P.bandName+'</div><div style="font-size:12px;color:#64748b">저항: '+P.bandR+'</div><div style="font-size:12px;color:#64748b">'+P.bandD+'</div></div></div></div>';
+
+// 4. PROGRAM
+h+=B+S('4. 운동 프로그램 ('+P.dur+'분, '+P.prog.length+'종)');
+h+='<table style="width:100%;font-size:12px;border-collapse:collapse"><tr style="background:#e2e8f0"><th style="padding:6px 8px;text-align:left">#</th><th style="text-align:left;padding:6px">운동명</th><th style="text-align:left;padding:6px">분류</th><th style="text-align:center;padding:6px">횟수</th><th style="text-align:left;padding:6px">장비</th></tr>';
+P.prog.forEach(function(ex,i){h+='<tr style="background:'+(i%2?'#f1f5f9':'#fff')+'"><td style="padding:5px 8px;font-weight:700">'+(i+1)+'</td><td style="padding:5px 6px"><strong>'+ex.kr+'</strong><br><span style="color:#94a3b8;font-size:11px">'+ex.en+'</span></td><td style="padding:5px 6px">'+catKr[ex.cat]+'</td><td style="padding:5px 6px;text-align:center;font-weight:700">'+ex.reps+'</td><td style="padding:5px 6px">'+(ex.band?'밴드':'맨몸')+'</td></tr>'});
+h+='</table></div>';
+
+// 5. RESULT
+if(P.pops>0){
+h+=B+S('5. 운동 수행 결과');
+h+='<div style="display:flex;gap:12px;text-align:center">';
+h+='<div style="flex:1;background:#ecfdf5;border-radius:10px;padding:14px"><div style="font-size:28px;font-weight:900;color:#06D6A0">'+P.pops+'</div><div style="font-size:11px;color:#64748b">터트린 풍선</div></div>';
+h+='<div style="flex:1;background:#ecfdf5;border-radius:10px;padding:14px"><div style="font-size:28px;font-weight:900;color:#06D6A0">'+P.exList.length+'</div><div style="font-size:11px;color:#64748b">완료 운동</div></div>';
+h+='<div style="flex:1;background:#ecfdf5;border-radius:10px;padding:14px"><div style="font-size:28px;font-weight:900;color:#06D6A0">'+mm+':'+String(ss).padStart(2,'0')+'</div><div style="font-size:11px;color:#64748b">운동 시간</div></div>';
+h+='</div></div>';
+}
+
+var n=P.pops?6:5;
+
+// 6. WEEKLY PLAN
+h+=B+S(n+'. 주간 운동 계획');
+h+='<table style="width:100%;font-size:12px;border-collapse:collapse"><tr style="background:#e2e8f0"><th style="padding:5px 8px;text-align:left;width:40px">요일</th><th style="text-align:left;padding:5px">유형</th><th style="text-align:left;padding:5px">내용</th></tr>';
+P.weekPlan.forEach(function(d,i){h+='<tr style="background:'+(i%2?'#f1f5f9':'#fff')+'"><td style="padding:4px 8px;font-weight:700">'+d.day+'</td><td style="padding:4px 6px;font-weight:600">'+d.tp+'</td><td style="padding:4px 6px;color:#475569">'+d.dt+'</td></tr>'});
+h+='</table></div>';
+n++;
+
+// 7. EXERCISE PRESCRIPTION
+h+=B+S(n+'. 장기 운동처방 (ACSM Guidelines)');
+P.exRx.forEach(function(p){
+h+='<div style="margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #e2e8f0">';
+h+='<div style="font-size:14px;font-weight:800;color:#7C3AED">'+p.cat+'</div>';
+h+='<div style="font-size:12px;color:#334155;margin-top:4px"><b>빈도:</b> '+p.freq+' &nbsp;&nbsp; <b>시간:</b> '+p.time+'</div>';
+h+='<div style="font-size:12px;color:#334155"><b>강도:</b> '+p.int+'</div>';
+h+='<div style="font-size:12px;color:#64748b"><b>추천 운동:</b> '+p.ex+'</div>';
+if(p.nt)h+='<div style="font-size:11px;color:#e65100;margin-top:4px;background:#fff3e0;padding:4px 8px;border-radius:4px">⚠️ '+p.nt+'</div>';
+h+='</div>'});
+h+='</div>';
+n++;
+
+// 8. NUTRITION
+h+=B+S(n+'. 영양 처방');
+// Macros
+h+='<div style="display:flex;gap:8px;margin-bottom:14px;text-align:center">';
+h+='<div style="flex:1;background:#fef2f2;border-radius:8px;padding:10px"><div style="font-size:22px;font-weight:900;color:#FF3366">'+P.macros.cal+'</div><div style="font-size:9px;color:#94a3b8">kcal/일</div></div>';
+h+='<div style="flex:1;background:#ecfdf5;border-radius:8px;padding:10px"><div style="font-size:22px;font-weight:900;color:#06D6A0">'+P.macros.prot+'g</div><div style="font-size:9px;color:#94a3b8">단백질</div></div>';
+h+='<div style="flex:1;background:#f5f3ff;border-radius:8px;padding:10px"><div style="font-size:22px;font-weight:900;color:#7C3AED">'+P.macros.carb+'g</div><div style="font-size:9px;color:#94a3b8">탄수화물</div></div>';
+h+='<div style="flex:1;background:#fffbeb;border-radius:8px;padding:10px"><div style="font-size:22px;font-weight:900;color:#F59E0B">'+P.macros.fat+'g</div><div style="font-size:9px;color:#94a3b8">지방</div></div></div>';
+// Meal plan
+h+='<div style="font-size:14px;font-weight:800;margin-bottom:8px">📋 일일 식단표</div>';
+P.meals.forEach(function(m){
+h+='<div style="padding:8px 10px;margin-bottom:6px;border-radius:8px;background:#fff;border:1px solid #e2e8f0">';
+h+='<div style="font-size:12px;font-weight:700">'+m.t+' <span style="color:#06D6A0;font-size:10px;font-weight:400">'+m.cal+' kcal</span></div>';
+h+='<div style="font-size:11px;color:#334155;margin-top:3px">'+m.mn+'</div>';
+h+='<div style="font-size:10px;color:#94a3b8;margin-top:2px">💡 '+m.tp+'</div></div>'});
+// Diet recs
+h+='<div style="margin-top:12px;font-size:13px;font-weight:700">🥗 영양 가이드라인</div>';
+h+='<ul style="margin:6px 0;padding-left:18px;font-size:11px;color:#334155;line-height:1.7">';
+P.dietRec.forEach(function(r){h+='<li style="margin-bottom:3px">'+r+'</li>'});
+h+='</ul>';
+// Supplements
+if(P.supps&&P.supps.length>0){
+h+='<div style="margin-top:12px;font-size:13px;font-weight:700">💊 보충제 권장</div>';
+h+='<table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:6px"><tr style="background:#e2e8f0"><th style="padding:5px 8px;text-align:left">보충제</th><th style="text-align:left;padding:5px">용량</th><th style="text-align:left;padding:5px">목적</th></tr>';
+P.supps.forEach(function(s,i){h+='<tr style="background:'+(i%2?'#f8fafc':'#fff')+'"><td style="padding:4px 8px;font-weight:600;color:#06D6A0">'+s.nm+'</td><td style="padding:4px 6px">'+s.ds+'</td><td style="padding:4px 6px;color:#64748b">'+s.rs+'</td></tr>'});
+h+='</table>'}
+h+='</div>';
+
+// FOOTER
+h+='<div style="text-align:center;font-size:10px;color:#94a3b8;margin-top:20px;padding-top:12px;border-top:1px solid #e2e8f0">AI Sports Tech Research Center · 광주보건대학교<br>'+dateStr+' 생성</div>';
+h+='</div></div>';
+
+var el2=document.createElement('div');
+el2.innerHTML=h;
+el2.style.position='fixed';el2.style.left='-9999px';el2.style.top='0';
+document.body.appendChild(el2);
+html2pdf().set({
+  margin:[6,6,6,6],
+  filename:'운동처방보고서_'+new Date().toISOString().slice(0,10)+'.pdf',
+  image:{type:'jpeg',quality:0.95},
+  html2canvas:{scale:2,useCORS:true,letterRendering:true},
+  jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+  pagebreak:{mode:['avoid-all','css','legacy']}
+}).from(el2.firstChild).save().then(function(){document.body.removeChild(el2)});
+};
+</script></body></html>
